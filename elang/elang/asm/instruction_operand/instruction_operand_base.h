@@ -18,7 +18,7 @@
 namespace elang{
 	namespace asm_{
 		namespace instruction{
-			class operand_base : public std::enable_shared_from_this<operand_base>{
+			class operand_base{
 			public:
 				typedef operand_id id_type;
 				typedef instruction_error error_type;
