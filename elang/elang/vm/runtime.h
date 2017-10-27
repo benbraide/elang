@@ -4,6 +4,7 @@
 #define ELANG_RUNTIME_H
 
 #include "runtime_error.h"
+#include "runtime_stack.h"
 
 namespace elang{
 	namespace vm{
@@ -18,6 +19,8 @@ namespace elang{
 			static bool is_inside_protected_mode();
 
 			static thread_local unsigned int protected_mode_count;
+
+			static thread_local runtime_stack stack;
 		};
 	}
 }
