@@ -1,3 +1,5 @@
+#include "../vm/runtime.h"
+
 #include "memory_manager.h"
 
 void elang::memory::manager::protect_from_access(const range_type &range){
@@ -7,6 +9,9 @@ void elang::memory::manager::protect_from_access(const range_type &range){
 }
 
 bool elang::memory::manager::is_access_protected(const range_type &range) const{
+	if (elang::vm::runtime::is_inside_protected_mode())
+		return false;//Inside protected mode
+
 	return ((access_protected_.from <= range.from && range.from <= access_protected_.to) ||
 		(access_protected_.from <= range.to && range.to <= access_protected_.to));
 }
