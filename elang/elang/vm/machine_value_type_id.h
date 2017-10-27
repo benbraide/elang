@@ -3,6 +3,8 @@
 #ifndef ELANG_MACHINE_VALUE_TYPE_ID_H
 #define ELANG_MACHINE_VALUE_TYPE_ID_H
 
+#include <string>
+
 namespace elang{
 	namespace vm{
 		enum class machine_value_type_id{
@@ -72,6 +74,26 @@ namespace elang{
 		template <>
 		struct machine_value_type<long double>{
 			static const machine_value_type_id id = machine_value_type_id::float_;
+		};
+
+		struct machine_value_type_id_utils{
+			static std::size_t machine_value_type_id_byte_size(machine_value_type_id id){
+				switch (id){
+				case machine_value_type_id::byte:
+					return 1u;
+				case machine_value_type_id::word:
+					return 2u;
+				case machine_value_type_id::dword:
+					return 4u;
+				case machine_value_type_id::qword:
+				case machine_value_type_id::float_:
+					return 8u;
+				default:
+					break;
+				}
+
+				return 0u;
+			}
 		};
 	}
 }
