@@ -8,6 +8,8 @@
 
 #include <boost/endian/buffers.hpp>
 
+#include "../common/output_writer.h"
+
 #include "machine_value_type_id.h"
 #include "machine_register_error.h"
 
@@ -20,6 +22,8 @@ namespace elang{
 
 			typedef std::size_t size_type;
 			typedef std::shared_ptr<machine_register> ptr_type;
+
+			typedef elang::common::output_writer output_writer_type;
 
 			explicit machine_register(const std::string &name);
 
@@ -57,6 +61,10 @@ namespace elang{
 			void push_onto_stack();
 
 			void pop_from_stack();
+
+			friend output_writer_type &operator <<(output_writer_type &writer, machine_register &reg){
+				return (writer << reg.name_);
+			}
 
 		protected:
 			void init_(size_type size, char *buffer);
