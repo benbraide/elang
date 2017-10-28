@@ -20,6 +20,8 @@ namespace elang{
 		namespace instruction{
 			class operand_base{
 			public:
+				typedef unsigned __int64 uint64_type;
+
 				typedef operand_id id_type;
 				typedef instruction_error error_type;
 				typedef instruction_operator_id operator_id_type;
@@ -76,6 +78,10 @@ namespace elang{
 				}
 
 				virtual void read(char *buffer, size_type size, numeric_type_id_type type_id) const = 0;
+
+				virtual uint64_type effective_address() const{
+					return read<uint64_type>();
+				}
 
 				virtual void push_onto_stack(){
 					throw error_type::bad_operation;

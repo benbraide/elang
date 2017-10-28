@@ -94,6 +94,25 @@ namespace elang{
 
 				return 0u;
 			}
+
+			static std::string machine_value_type_id_to_string(machine_value_type_id id){
+				switch (id){
+				case machine_value_type_id::byte:
+					return "byte";
+				case machine_value_type_id::word:
+					return "word";
+				case machine_value_type_id::dword:
+					return "dword";
+				case machine_value_type_id::qword:
+					return "qword";
+				case machine_value_type_id::float_:
+					return "float";
+				default:
+					break;
+				}
+
+				return "";
+			}
 		};
 	}
 }

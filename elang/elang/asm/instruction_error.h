@@ -13,6 +13,7 @@ namespace elang{
 			bad_identifier,
 			bad_operand,
 			bad_operand_count,
+			operands_type_mismatch,
 			section_redifinition,
 			bad_instruction,
 			no_section,

@@ -22,6 +22,7 @@ namespace elang{
 				typedef std::size_t size_type;
 				typedef std::shared_ptr<base> ptr_type;
 
+				typedef operand_id operand_id_type;
 				typedef operand_base::ptr_type operand_ptr_type;
 				typedef std::vector<operand_ptr_type> operand_ptr_list_type;
 
