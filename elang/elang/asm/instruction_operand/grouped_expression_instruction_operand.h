@@ -6,7 +6,7 @@
 #include "instruction_operand_base.h"
 
 namespace elang{
-	namespace asm_{
+	namespace easm{
 		namespace instruction{
 			class grouped_expression_operand : public operand_base{
 			public:

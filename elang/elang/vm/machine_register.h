@@ -45,6 +45,16 @@ namespace elang{
 					write_(value, std::bool_constant<std::is_integral<value_type>::value>());
 			}
 
+			template <typename value_type>
+			void inc(value_type value = static_cast<value_type>(1)){
+				write(read<value_type_id_type>() + value);
+			}
+
+			template <typename value_type>
+			void dec(value_type value = static_cast<value_type>(1)){
+				write(read<value_type_id_type>() - value);
+			}
+
 			template <typename target_type>
 			target_type read() const{
 				if (sizeof(target_type) != size_)

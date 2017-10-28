@@ -16,7 +16,7 @@
 #include "instruction_operand_id.h"
 
 namespace elang{
-	namespace asm_{
+	namespace easm{
 		namespace instruction{
 			class operand_base{
 			public:

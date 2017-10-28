@@ -14,6 +14,7 @@ namespace elang{
 			begin,
 			end,
 			flush,
+			newline,
 		};
 
 		enum class output_writer_error{

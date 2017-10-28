@@ -10,7 +10,7 @@
 #include "../instruction_operand/instruction_operand_base.h"
 
 namespace elang{
-	namespace asm_{
+	namespace easm{
 		namespace instruction{
 			class base{
 			public:
@@ -46,9 +46,11 @@ namespace elang{
 					return (instruction_bytes_ = (bytes + this_instruction_bytes_()));
 				}
 
+				virtual void validate_operands() const{}
+
 				virtual void execute_and_update_instruction_pointer(register_type &instruction_pointer) const{
 					execute();
-					instruction_pointer.write<uint64_type>(instruction_pointer.read<uint64_type>() + instruction_bytes());//Advance Instruction Pointer
+					instruction_pointer.inc<uint64_type>(instruction_bytes());//Advance Instruction Pointer
 				}
 
 				virtual void execute() const = 0;

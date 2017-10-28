@@ -6,7 +6,7 @@
 #include <string>
 
 namespace elang{
-	namespace asm_{
+	namespace easm{
 		enum class instruction_operator_id{
 			add,
 			sub,

@@ -23,6 +23,9 @@ namespace elang{
 				case manip_type::flush:
 					stream_ << std::flush;
 					break;
+				case manip_type::newline:
+					stream_ << std::endl;
+					break;
 				default:
 					return output_writer::operator<<(manip);
 				}

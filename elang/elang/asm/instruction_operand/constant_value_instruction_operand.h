@@ -6,7 +6,7 @@
 #include "instruction_operand_base.h"
 
 namespace elang{
-	namespace asm_{
+	namespace easm{
 		namespace instruction{
 			template <class operand_value_type>
 			class constant_value_operand : public operand_base{

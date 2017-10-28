@@ -4,7 +4,7 @@
 #define ELANG_INSTRUCTION_OPERAND_ID_H
 
 namespace elang{
-	namespace asm_{
+	namespace easm{
 		namespace instruction{
 			enum class operand_id{
 				nil,

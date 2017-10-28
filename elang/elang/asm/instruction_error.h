@@ -4,7 +4,7 @@
 #define ELANG_INSTRUCTION_ERROR_H
 
 namespace elang{
-	namespace asm_{
+	namespace easm{
 		enum class instruction_error{
 			nil,
 			bad_operation,
@@ -12,6 +12,7 @@ namespace elang{
 			bad_conversion,
 			bad_identifier,
 			bad_operand,
+			bad_operand_count,
 			section_redifinition,
 			bad_instruction,
 			no_section,

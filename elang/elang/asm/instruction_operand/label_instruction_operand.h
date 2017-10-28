@@ -6,7 +6,7 @@
 #include "constant_value_instruction_operand.h"
 
 namespace elang{
-	namespace asm_{
+	namespace easm{
 		namespace instruction{
 			class label_operand : public constant_value_operand<unsigned __int64>{
 			public:

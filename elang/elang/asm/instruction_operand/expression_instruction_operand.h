@@ -6,7 +6,7 @@
 #include "constant_value_instruction_operand.h"
 
 namespace elang{
-	namespace asm_{
+	namespace easm{
 		namespace instruction{
 			class expression_operand : public operand_base{
 			public:
