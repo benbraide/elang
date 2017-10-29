@@ -36,6 +36,10 @@ namespace elang{
 				base(const std::string &name, list_type &&operands)
 					: name_(name), operands_(std::forward<list_type>(operands)), instruction_bytes_(0u){}
 
+				virtual value_type_id_type required_value_type() const{
+					return value_type_id_type::unknown;
+				}
+
 				virtual size_type instruction_bytes() const{
 					if (instruction_bytes_ != 0u)
 						return instruction_bytes_;

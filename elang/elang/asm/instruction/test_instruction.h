@@ -1,31 +1,24 @@
 #pragma once
 
-#ifndef ELANG_MOV_INSTRUCTION_H
-#define ELANG_MOV_INSTRUCTION_H
+#ifndef ELANG_TEST_INSTRUCTION_H
+#define ELANG_TEST_INSTRUCTION_H
+
+#include "../../vm/machine.h"
 
 #include "instruction_base.h"
 
 namespace elang{
 	namespace easm{
 		namespace instruction{
-			class mov : public base{
+			class test : public base{
 			public:
 				template <typename... args_types>
-				explicit mov(args_types &&... args)
-					: base("mov", std::forward<args_types>(args)...){}
+				explicit test(args_types &&... args)
+					: base("test", std::forward<args_types>(args)...){}
 
 				virtual void validate_operands() const override{
 					if (operands_.size() != 2u)
 						throw error_type::bad_operand_count;
-
-					switch (operands_[0]->id()){
-					case operand_id_type::register_value:
-					case operand_id_type::memory:
-						break;
-					default:
-						throw error_type::bad_operand;
-						break;
-					}
 
 					if (operands_[0]->value_type() != operands_[1]->value_type())
 						throw error_type::operands_type_mismatch;
@@ -34,15 +27,13 @@ namespace elang{
 				virtual void execute() const override{
 					switch (operands_[0]->value_type()){
 					case value_type_id_type::byte:
-						return execute_<__int8>();
+						return execute_<unsigned __int8>();
 					case value_type_id_type::word:
-						return execute_<__int16>();
+						return execute_<unsigned __int16>();
 					case value_type_id_type::dword:
-						return execute_<__int32>();
+						return execute_<unsigned __int32>();
 					case value_type_id_type::qword:
-						return execute_<__int64>();
-					case value_type_id_type::float_:
-						return execute_<long double>();
+						return execute_<unsigned __int64>();
 					default:
 						break;
 					}
@@ -51,13 +42,13 @@ namespace elang{
 				}
 
 			protected:
-				template <typename value_type>
+				template <typename target_type>
 				void execute_() const{
-					operands_[0]->write(operands_[1]->read<value_type>());
+					return elang::vm::machine::cached_registers.compare_target->write(static_cast<uint64_type>(operands_[0]->read<target_type>() & operands_[1]->read<target_type>()));
 				}
 			};
 		}
 	}
 }
 
-#endif /* !ELANG_MOV_INSTRUCTION_H */
+#endif /* !ELANG_TEST_INSTRUCTION_H */

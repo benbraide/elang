@@ -14,7 +14,11 @@ namespace elang{
 				explicit lea(args_types &&... args)
 					: base("lea", std::forward<args_types>(args)...){}
 
-				virtual void validate_operands() const{
+				virtual value_type_id_type required_value_type() const override{
+					return value_type_id_type::qword;
+				}
+
+				virtual void validate_operands() const override{
 					if (operands_.size() != 2u)
 						throw error_type::bad_operand_count;
 
