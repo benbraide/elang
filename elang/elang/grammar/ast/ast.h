@@ -21,7 +21,7 @@
 #define ELANG_AST_PREFIX									\
 namespace x3 = boost::spirit::x3;
 
-#define ELANG_AST_BEGIN namespace oosl::grammar::ast{		\
+#define ELANG_AST_BEGIN namespace elang::grammar::ast{		\
 															\
 ELANG_AST_PREFIX
 
@@ -53,8 +53,8 @@ struct name : x3::position_tagged{							\
 
 #define ELANG_AST_ADAPT_SINGLE(name)						\
 BOOST_FUSION_ADAPT_STRUCT(									\
-	oosl::parser::ast::name,								\
-	(oosl::parser::ast::name::value_type, value)			\
+	elang::grammar::ast::name,								\
+	(elang::grammar::ast::name::value_type, value)			\
 )
 
 #endif /* !ELANG_AST_H */
