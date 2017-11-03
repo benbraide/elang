@@ -113,17 +113,24 @@ namespace elang::grammar::parser{
 	x3::rule<class asm_relative_label, ast::asm_relative_label> const asm_relative_label = "asm_relative_label";
 
 	x3::rule<class asm_expression, instruction_operand_ptr_type> const asm_expression = "asm_expression";
-	x3::rule<class asm_grouped_expression, ast::asm_expression> const asm_grouped_expression = "asm_grouped_expression";
+	x3::rule<class asm_grouped_expression, ast::asm_grouped_expression> const asm_grouped_expression = "asm_grouped_expression";
 
 	x3::rule<class asm_memory, ast::asm_memory> const asm_memory = "asm_memory";
+	x3::rule<class asm_sized_memory, ast::asm_sized_memory> const asm_sized_memory = "asm_sized_memory";
 
+	x3::rule<class asm_expression_operand, ast::asm_expression_operand> const asm_expression_operand = "asm_expression_operand";
 	x3::rule<class asm_operand, ast::asm_operand> const asm_operand = "asm_operand";
 	x3::rule<class asm_typed_operand, ast::asm_typed_operand> const asm_typed_operand = "asm_typed_operand";
 
-	x3::rule<class asm_times_instruction, ast::asm_times_instruction> const asm_times_instruction = "asm_times_instruction";
+	x3::rule<class asm_struct_def_value, ast::asm_struct_def_value> const asm_struct_def_value = "asm_struct_def_value";
+	x3::rule<class asm_struct_def, ast::asm_struct_def> const asm_struct_def = "asm_struct_def";
+	x3::rule<class asm_type_def, ast::asm_type_def> const asm_type_def = "asm_type_def";
 
+	x3::rule<class asm_times_instruction, ast::asm_times_instruction> const asm_times_instruction = "asm_times_instruction";
 	x3::rule<class asm_instruction, ast::asm_instruction> const asm_instruction = "asm_instruction";
+
 	x3::rule<class asm_instruction_set, ast::asm_instruction_set> const asm_instruction_set = "asm_instruction_set";
+	x3::rule<class asm_instruction_set_value, ast::asm_instruction_set_value> const asm_instruction_set_value = "asm_instruction_set_value";
 
 	x3::rule<class asm_skip> const asm_skip = "asm_skip";
 
@@ -153,28 +160,34 @@ namespace elang::grammar::parser{
 	auto const asm_label_def = (asm_identifier >> utils::keyword(":"));
 	auto const asm_relative_label_def = (x3::lexeme[+x3::char_('.') >> asm_label]);
 
-	auto const asm_expression_def = (asm_operand)[asm_parsed_single] >> *(asm_operator_symbols_ >> asm_operand)[asm_parsed_expression];
+	auto const asm_expression_def = (asm_expression_operand)[asm_parsed_single] >> *(asm_operator_symbols_ >> asm_expression_operand)[asm_parsed_expression];
 	auto const asm_grouped_expression_def = ('(' >> asm_expression >> ')');
 
-	auto const asm_memory_def = ('[' >> asm_operand >> ']');
+	auto const asm_memory_def = ('[' >> asm_expression >> ']');
+	auto const asm_sized_memory_def = (asm_memory >> (asm_absolute_identifier | asm_identifier));
+
+	auto const asm_expression_operand_def = (asm_grouped_expression | asm_float_value | asm_integral_value | asm_absolute_identifier | asm_identifier);
 
 	auto const asm_operand_def = (
-		asm_float_value |
-		asm_grouped_expression |
-		asm_expression |
-		asm_integral_value |
-		asm_absolute_identifier |
-		asm_identifier |
-		asm_memory
+		asm_sized_memory |
+		asm_memory |
+		asm_string |
+		asm_expression
 	);
 
 	auto const asm_typed_operand_def = (asm_type_symbols_ >> asm_operand);
 
-	auto const asm_times_instruction_def = (utils::keyword("times") >> x3::uint_ >> asm_instruction);
-	auto const asm_instruction_def = (utils::keyword(asm_mnemonic_symbols_) >> -(asm_operand % ",") > (x3::eol | x3::eoi));
-	auto const asm_instruction_set_def = (*asm_instruction);
+	auto const asm_struct_def_value_def = (asm_type_def >> x3::omit[x3::eol]);
+	auto const asm_struct_def_def = (utils::keyword("struct") >> '{' >> x3::omit[x3::eol] >> +asm_struct_def_value >> '}');
+	auto const asm_type_def_def = (asm_identifier >> (asm_struct_def | asm_type_symbols_));
 
-	auto const asm_skip_def = (x3::space | (';' >> *x3::omit[(x3::char_ - x3::eol)] >> (x3::eol | x3::eoi)));
+	auto const asm_times_instruction_def = (utils::keyword("times") >> x3::uint_ >> asm_instruction);
+	auto const asm_instruction_def = (utils::keyword(asm_mnemonic_symbols_) >> -((asm_typed_operand | asm_operand) % ","));
+
+	auto const asm_instruction_set_value_def = ((asm_section | asm_relative_label | asm_label | asm_times_instruction | asm_instruction | asm_type_def) >> x3::omit[(x3::eol | x3::eoi)]);
+	auto const asm_instruction_set_def = *(asm_instruction_set_value);
+
+	auto const asm_skip_def = (x3::space | (';' >> *x3::omit[(x3::char_ - x3::eol)]));
 
 	BOOST_SPIRIT_DEFINE(
 		asm_integral_value,
@@ -188,10 +201,16 @@ namespace elang::grammar::parser{
 		asm_expression,
 		asm_grouped_expression,
 		asm_memory,
+		asm_sized_memory,
+		asm_expression_operand,
 		asm_operand,
 		asm_typed_operand,
+		asm_struct_def_value,
+		asm_struct_def,
+		asm_type_def,
 		asm_times_instruction,
 		asm_instruction,
+		asm_instruction_set_value,
 		asm_instruction_set,
 		asm_skip
 	)

@@ -23,6 +23,21 @@ elang::vm::machine_register::value_type_id_type elang::vm::machine_register::typ
 	throw error_type::size_mismatch;
 }
 
+elang::vm::machine_register::uint64_type elang::vm::machine_register::read_64bits() const{
+	switch (size_){
+	case 1u:
+		return static_cast<uint64_type>(read<__int8>());
+	case 2u:
+		return static_cast<uint64_type>(read<__int16>());
+	case 4u:
+		return static_cast<uint64_type>(read<__int32>());
+	default:
+		break;
+	}
+
+	return read<uint64_type>();
+}
+
 elang::vm::machine_register::ptr_type elang::vm::machine_register::alias(const std::string &name) const{
 	return std::make_shared<machine_register>(name, size_, buffer_);
 }

@@ -19,6 +19,10 @@ namespace elang{
 					return id_type::label;
 				}
 
+				virtual uint64_type read_64bits() const override{
+					return 0;
+				}
+
 				virtual void write_to_memory(char *buffer) override{
 					throw error_type::bad_operation;
 				}

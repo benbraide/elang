@@ -37,6 +37,10 @@ namespace elang{
 					value_->read(buffer, size, type_id);
 				}
 
+				virtual uint64_type read_64bits() const override{
+					return value_->read_64bits();
+				}
+
 				virtual void write_to_memory(char *buffer) override{
 					value_->write_to_memory(buffer);
 				}

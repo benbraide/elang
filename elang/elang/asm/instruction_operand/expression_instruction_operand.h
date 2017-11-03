@@ -38,6 +38,10 @@ namespace elang{
 					eval_()->read(buffer, size, type_id);
 				}
 
+				virtual uint64_type read_64bits() const override{
+					return eval_()->read_64bits();
+				}
+
 				virtual void write_to_memory(char *buffer) override{
 					eval_()->write_to_memory(buffer);
 				}
@@ -73,10 +77,10 @@ namespace elang{
 					throw instruction_error::ambiguous_operation;
 				}
 
-				template <typename value_type>
-				ptr_type eval_(value_type left, value_type right) const{
-					typedef constant_value_operand<value_type> constant_value_operand_type;
-					switch (id){
+				template <typename arg_value_type>
+				ptr_type eval_(arg_value_type left, arg_value_type right) const{
+					typedef constant_value_operand<arg_value_type> constant_value_operand_type;
+					switch (op_){
 					case instruction_operator_id::add:
 						return std::make_shared<constant_value_operand_type>(value_type(), left + right);
 					case instruction_operator_id::sub:
@@ -92,10 +96,10 @@ namespace elang{
 					throw instruction_error::bad_operation;
 				}
 
-				template <typename value_type>
-				ptr_type eval_integral_(value_type left, value_type right) const{
-					typedef constant_value_operand<value_type> constant_value_operand_type;
-					switch (id){
+				template <typename arg_value_type>
+				ptr_type eval_integral_(arg_value_type left, arg_value_type right) const{
+					typedef constant_value_operand<arg_value_type> constant_value_operand_type;
+					switch (op_){
 					case instruction_operator_id::mod:
 						return std::make_shared<constant_value_operand_type>(value_type(), left % right);
 					case instruction_operator_id::and_:

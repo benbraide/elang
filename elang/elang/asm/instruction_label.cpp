@@ -1,11 +1,10 @@
 #include "instruction_label.h"
 
 elang::easm::instruction_label::instruction_label(instruction_label *parent, const std::string &name)
-	: parent_(parent), name_(name){
-	if (parent_ == nullptr)
-		qualified_name_ = ("." + name_);
-	else//Join names
-		qualified_name_ = (parent_->qualified_name_ + "." + name_);
+	: parent_(parent), name_(name){}
+
+elang::easm::instruction_label *elang::easm::instruction_label::add(const std::string &label){
+	return nullptr;
 }
 
 void elang::easm::instruction_label::create() const{
@@ -20,22 +19,21 @@ int elang::easm::instruction_label::nested_level() const{
 	return ((parent_ == nullptr) ? 0 : (parent_->nested_level() + 1));
 }
 
-const std::string &elang::easm::instruction_label::qualified_name() const{
-	return qualified_name_;
-}
-
-elang::easm::instruction_label *elang::easm::instruction_label::find(const std::string &name, bool is_qualified) const{
-	if (is_qualified){
-		if (name == qualified_name_)
+elang::easm::instruction_label *elang::easm::instruction_label::find(const std::string &first, const std::vector<std::string> &rest) const{
+	if (first == name_){
+		if (rest.empty())
 			return const_cast<instruction_label *>(this);
 
-		return ((parent_ == nullptr) ? nullptr : parent_->find(name, is_qualified));//#TODO: Search all labels
+		instruction_label *found = nullptr;
+		for (auto entry : list_){//Search tree
+			if ((found = entry->find_(rest.begin(), rest.end())) != nullptr)
+				return found;
+		}
+
+		return nullptr;
 	}
 
-	if (name == name_)
-		return const_cast<instruction_label *>(this);
-
-	return ((parent_ == nullptr) ? nullptr : parent_->find(name, is_qualified));//#TODO: Search all labels
+	return ((parent_ == nullptr) ? nullptr : parent_->find(first, rest));
 }
 
 void elang::easm::instruction_label::print(writer_type &writer, writer_type &wide_writer) const{
@@ -44,4 +42,20 @@ void elang::easm::instruction_label::print(writer_type &writer, writer_type &wid
 		writer << std::string(level_count, '.');
 
 	writer << name_ << writer_type::manip_type::flush;
+}
+
+elang::easm::instruction_label *elang::easm::instruction_label::find_(string_list_iterator_type iter, string_list_iterator_type end) const{
+	if (*iter != name_)//Name does not match this
+		return nullptr;
+
+	if (++iter == end)//Match completed
+		return const_cast<instruction_label *>(this);
+
+	instruction_label *found = nullptr;
+	for (auto entry : list_){//Search tree
+		if ((found = entry->find_(iter, end)) != nullptr)
+			return found;
+	}
+
+	return nullptr;
 }

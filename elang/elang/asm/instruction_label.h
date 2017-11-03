@@ -3,6 +3,9 @@
 #ifndef ELANG_INSTRUCTION_LABEL_H
 #define ELANG_INSTRUCTION_LABEL_H
 
+#include <list>
+#include <vector>
+
 #include "../../common/output_writer.h"
 
 #include "instruction_error.h"
@@ -14,7 +17,15 @@ namespace elang{
 			typedef instruction_error error_type;
 			typedef elang::common::output_writer writer_type;
 
+			typedef std::shared_ptr<instruction_label> ptr_type;
+			typedef std::list<instruction_label *> list_type;
+
+			typedef std::vector<std::string> string_list_type;
+			typedef string_list_type::const_iterator string_list_iterator_type;
+
 			instruction_label(instruction_label *parent, const std::string &name);
+
+			instruction_label *add(const std::string &label);
 
 			void create() const;
 
@@ -22,16 +33,16 @@ namespace elang{
 
 			int nested_level() const;
 
-			const std::string &qualified_name() const;
-
-			instruction_label *find(const std::string &name, bool is_qualified) const;
+			instruction_label *find(const std::string &first, const std::vector<std::string> &rest) const;
 
 			void print(writer_type &writer, writer_type &wide_writer) const;
 
 		protected:
+			instruction_label *find_(string_list_iterator_type iter, string_list_iterator_type end) const;
+
 			instruction_label *parent_;
 			std::string name_;
-			std::string qualified_name_;
+			list_type list_;
 		};
 	}
 }

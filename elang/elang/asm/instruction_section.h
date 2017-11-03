@@ -3,9 +3,14 @@
 #ifndef ELANG_INSTRUCTION_SECTION_H
 #define ELANG_INSTRUCTION_SECTION_H
 
-#include "../../common/output_writer.h"
+#include <variant>
+#include <unordered_map>
 
-#include "instruction_error.h"
+#include "../vm/runtime_type.h"
+
+#include "instruction/times_instruction.h"
+
+#include "instruction_label.h"
 
 namespace elang{
 	namespace easm{
@@ -16,23 +21,96 @@ namespace elang{
 			type,
 		};
 
-		class instruction_section{
+		class instruction_section_base{
 		public:
+			typedef unsigned __int64 uint64_type;
+
 			typedef section_id id_type;
 			typedef instruction_error error_type;
 
+			typedef instruction::base instruction_type;
+			typedef instruction_type::ptr_type instruction_ptr_type;
+
+			typedef elang::vm::runtime_type::ptr_type runtime_ptr_type;
 			typedef elang::common::output_writer writer_type;
+
+			typedef std::vector<std::string> string_list_type;
+
+			struct printer{
+				printer(writer_type &writer, writer_type &wide_writer)
+					: writer_(&writer), wide_writer_(&wide_writer){}
+
+				void operator ()(const instruction_type *instruction) const{
+					*writer_ << writer_type::manip_type::newline << std::string(2, ' ') << writer_type::manip_type::flush;
+					instruction->print(*writer_, *wide_writer_);
+				}
+
+				void operator ()(const instruction_label *label) const{
+					*writer_ << writer_type::manip_type::newline;
+					label->print(*writer_, *wide_writer_);
+				}
+
+			private:
+				writer_type *writer_;
+				writer_type *wide_writer_;
+			};
+
+			explicit instruction_section_base(id_type id);
+
+			virtual id_type id() const;
+
+			virtual void create() const;
+
+			virtual void print(writer_type &writer, writer_type &wide_writer) const;
+
+			virtual void set_seg_offset(uint64_type value);
+
+			virtual uint64_type get_seg_offset() const;
+
+			virtual instruction_label *add(instruction_label *parent, const std::string &label);
+
+			virtual void add(instruction_ptr_type instruction);
+
+			virtual void add(runtime_ptr_type type);
+
+			virtual instruction_type *find(uint64_type offset, bool is_relative) const;
+
+			virtual uint64_type find(const std::string &first, const std::vector<std::string> &rest) const;
+
+		protected:
+			virtual void print_content_(writer_type &writer, writer_type &wide_writer) const;
+
+			virtual instruction_type *find_(uint64_type offset) const;
+
+			id_type id_;
+			uint64_type seg_offset_;
+		};
+
+		class instruction_section : public instruction_section_base{
+		public:
+			typedef std::variant<instruction_type *, instruction_label *> variant_type;
+			typedef std::list<variant_type> order_list_type;
+
+			typedef std::unordered_map<uint64_type, instruction_ptr_type> instruction_list_type;
+			typedef std::unordered_map<instruction_label::ptr_type, uint64_type> label_list_type;
 
 			explicit instruction_section(id_type id);
 
-			id_type id() const;
+			virtual instruction_label *add(instruction_label *parent, const std::string &label) override;
 
-			void create() const;
+			virtual void add(instruction_ptr_type instruction) override;
 
-			void print(writer_type &writer, writer_type &wide_writer) const;
+			virtual uint64_type find(const std::string &first, const std::vector<std::string> &rest) const override;
 
 		protected:
-			id_type id_;
+			virtual void print_content_(writer_type &writer, writer_type &wide_writer) const override;
+
+			virtual instruction_type *find_(uint64_type offset) const override;
+
+			uint64_type offset_;
+			order_list_type order_list_;
+			instruction_list_type instruction_list_;
+			label_list_type label_list_;
 		};
 	}
 }

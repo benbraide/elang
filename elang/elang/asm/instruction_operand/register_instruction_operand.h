@@ -107,6 +107,10 @@ namespace elang{
 					}
 				}
 
+				virtual uint64_type read_64bits() const override{
+					return value_->read_64bits();
+				}
+
 				virtual void print(writer_type &writer, writer_type &wide_writer) const override{
 					writer << *value_ << writer_type::manip_type::flush;
 				}

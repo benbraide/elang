@@ -44,52 +44,74 @@ ELANG_AST_DECLARE_SINGLE_WPOS(asm_string, std::vector<char>)
 
 using asm_identifier = elang::grammar::elang_identifier_ast;
 
-struct asm_absolute_identifier{
-	asm_identifier first;
-	std::vector<asm_identifier> rest;
-};
+ELANG_AST_DECLARE_PAIR(asm_absolute_identifier, asm_identifier, std::vector<asm_identifier>)
 
 ELANG_AST_DECLARE_SINGLE_WPOS(asm_section, elang::easm::section_id)
 ELANG_AST_DECLARE_SINGLE(asm_label, asm_identifier)
-
-struct asm_relative_label{
-	std::vector<char> magnitude;
-	asm_label label;
-};
-
-ELANG_AST_DECLARE_SINGLE(asm_relative_label, asm_label)
+ELANG_AST_DECLARE_PAIR_WPOS(asm_relative_label, std::vector<char>, asm_label)
 
 using asm_expression = instruction_operand_ptr_type;
 
 ELANG_AST_DECLARE_SINGLE(asm_grouped_expression, asm_expression)
 
-struct asm_operand;
+using asm_sized_memory_variant = boost::variant<asm_identifier, asm_absolute_identifier>;
 
-ELANG_AST_DECLARE_SINGLE_WPOS(asm_memory, x3::forward_ast<asm_operand>)
+ELANG_AST_DECLARE_SINGLE_WPOS(asm_memory, asm_expression)
+ELANG_AST_DECLARE_PAIR(asm_sized_memory, asm_memory, asm_sized_memory_variant)
 
-ELANG_AST_DECLARE_SINGLE_VARIANT(asm_operand, asm_integral_value, asm_float_value, asm_identifier, asm_absolute_identifier, asm_expression, asm_grouped_expression, asm_memory)
+ELANG_AST_DECLARE_SINGLE_VARIANT(asm_expression_operand, asm_integral_value, asm_float_value, asm_identifier, asm_absolute_identifier, asm_grouped_expression)
+ELANG_AST_DECLARE_SINGLE_VARIANT(asm_operand, asm_string, asm_expression, asm_memory, asm_sized_memory)
+ELANG_AST_DECLARE_PAIR_WPOS(asm_typed_operand, elang::vm::machine_value_type_id, asm_operand)
 
-struct asm_typed_operand{
-	elang::vm::machine_value_type_id type;
-	asm_operand operand;
-};
+using asm_instruction_variant = boost::variant<asm_operand, asm_typed_operand>;
 
-struct asm_instruction{
-	typedef boost::variant<asm_operand, asm_typed_operand> operand_type;
-	elang::easm::instruction::id id;
-	std::vector<operand_type> operands;
-};
+ELANG_AST_DECLARE_PAIR_WPOS(asm_instruction, elang::easm::instruction::id, std::vector<asm_instruction_variant>)
+ELANG_AST_DECLARE_PAIR_WPOS(asm_times_instruction, unsigned int, asm_instruction)
 
-struct asm_times_instruction{
-	unsigned int count;
-	asm_instruction instruction;
-};
+struct asm_type_def;
 
-ELANG_AST_DECLARE_SINGLE_VARIANT(asm_instruction_set, asm_instruction, asm_times_instruction)
+ELANG_AST_DECLARE_SINGLE_WPOS(asm_struct_def_value, x3::forward_ast<asm_type_def>)
+ELANG_AST_DECLARE_SINGLE_WPOS(asm_struct_def, std::vector<asm_struct_def_value>)
+
+using asm_type_def_variant = boost::variant<elang::vm::machine_value_type_id, asm_struct_def>;
+
+ELANG_AST_DECLARE_PAIR_WPOS(asm_type_def, asm_identifier, asm_type_def_variant)
+
+ELANG_AST_DECLARE_SINGLE_VARIANT(asm_instruction_set_value, asm_section, asm_label, asm_relative_label, asm_instruction, asm_times_instruction, asm_type_def)
+ELANG_AST_DECLARE_SINGLE(asm_instruction_set, std::vector<asm_instruction_set_value>)
 
 struct asm_traverser{
-	static instruction_operand_ptr_type operand(const asm_operand &ast){
+	static void translate(const asm_instruction_set &ast){
+		for (auto &entry : ast.value)
+			boost::apply_visitor(asm_traverser(), entry.value);
+	}
+
+	static instruction_operand_ptr_type operand(const asm_expression_operand &ast){
 		return nullptr;
+	}
+
+	void operator()(const asm_section &ast) const{
+		
+	}
+
+	void operator()(const asm_label &ast) const{
+
+	}
+
+	void operator()(const asm_relative_label &ast) const{
+
+	}
+
+	void operator()(const asm_instruction &ast) const{
+
+	}
+
+	void operator()(const asm_times_instruction &ast) const{
+
+	}
+
+	void operator()(const asm_type_def &ast) const{
+
 	}
 };
 
@@ -99,45 +121,29 @@ ELANG_AST_ADAPT_SINGLE(asm_integral_value)
 ELANG_AST_ADAPT_SINGLE(asm_float_value)
 
 ELANG_AST_ADAPT_SINGLE(asm_string)
-
-BOOST_FUSION_ADAPT_STRUCT(
-	elang::grammar::ast::asm_absolute_identifier,
-	(elang::grammar::ast::asm_identifier, first)
-	(std::vector<elang::grammar::ast::asm_identifier>, rest)
-)
+ELANG_AST_ADAPT_PAIR(asm_absolute_identifier)
 
 ELANG_AST_ADAPT_SINGLE(asm_section)
 ELANG_AST_ADAPT_SINGLE(asm_label)
-
-BOOST_FUSION_ADAPT_STRUCT(
-	elang::grammar::ast::asm_relative_label,
-	(std::vector<char>, magnitude)
-	(elang::grammar::ast::asm_label, label)
-)
+ELANG_AST_ADAPT_PAIR(asm_relative_label)
 
 ELANG_AST_ADAPT_SINGLE(asm_grouped_expression)
+
 ELANG_AST_ADAPT_SINGLE(asm_memory)
+ELANG_AST_ADAPT_PAIR(asm_sized_memory)
 
+ELANG_AST_ADAPT_SINGLE(asm_expression_operand)
 ELANG_AST_ADAPT_SINGLE(asm_operand)
+ELANG_AST_ADAPT_PAIR(asm_typed_operand)
 
-BOOST_FUSION_ADAPT_STRUCT(
-	elang::grammar::ast::asm_typed_operand,
-	(elang::vm::machine_value_type_id, type)
-	(elang::grammar::ast::asm_operand, operand)
-)
+ELANG_AST_ADAPT_PAIR(asm_instruction)
+ELANG_AST_ADAPT_PAIR(asm_times_instruction)
 
-BOOST_FUSION_ADAPT_STRUCT(
-	elang::grammar::ast::asm_instruction,
-	(elang::easm::instruction::id, id)
-	(std::vector<elang::grammar::ast::asm_instruction::operand_type>, operands)
-)
+ELANG_AST_ADAPT_SINGLE(asm_struct_def_value)
+ELANG_AST_ADAPT_SINGLE(asm_struct_def)
+ELANG_AST_ADAPT_PAIR(asm_type_def)
 
-BOOST_FUSION_ADAPT_STRUCT(
-	elang::grammar::ast::asm_times_instruction,
-	(unsigned int, count)
-	(elang::grammar::ast::asm_instruction, instruction)
-)
-
+ELANG_AST_ADAPT_SINGLE(asm_instruction_set_value)
 ELANG_AST_ADAPT_SINGLE(asm_instruction_set)
 
 #endif /* !ELANG_ASM_AST_H */

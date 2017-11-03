@@ -51,10 +51,33 @@ struct name : x3::position_tagged{							\
 	value_type value;										\
 };
 
+#define ELANG_AST_DECLARE_PAIR(name, type1, type2)			\
+struct name{												\
+	typedef type1 first_value_type;							\
+	typedef type2 second_value_type;						\
+	type1 first;											\
+	type2 second;											\
+};
+
+#define ELANG_AST_DECLARE_PAIR_WPOS(name, type1, type2)		\
+struct name : x3::position_tagged{							\
+	typedef type1 first_value_type;							\
+	typedef type2 second_value_type;						\
+	type1 first;											\
+	type2 second;											\
+};
+
 #define ELANG_AST_ADAPT_SINGLE(name)						\
 BOOST_FUSION_ADAPT_STRUCT(									\
 	elang::grammar::ast::name,								\
 	(elang::grammar::ast::name::value_type, value)			\
+)
+
+#define ELANG_AST_ADAPT_PAIR(name)							\
+BOOST_FUSION_ADAPT_STRUCT(									\
+	elang::grammar::ast::name,								\
+	(elang::grammar::ast::name::first_value_type, first)	\
+	(elang::grammar::ast::name::second_value_type, second)	\
 )
 
 #endif /* !ELANG_AST_H */

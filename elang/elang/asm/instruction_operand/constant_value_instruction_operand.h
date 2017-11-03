@@ -77,6 +77,10 @@ namespace elang{
 					}
 				}
 
+				virtual uint64_type read_64bits() const override{
+					return static_cast<uint64_type>(value_);
+				}
+
 				virtual void write_to_memory(char *buffer) override{
 					if (value_type_ == value_type_id_type::unknown)
 						operand_base::write_to_memory(buffer);

@@ -26,6 +26,14 @@ namespace elang{
 					value_->print(writer, wide_writer);
 				}
 
+				virtual unsigned int count() const{
+					return count_;
+				}
+
+				virtual ptr_type value() const{
+					return value_;
+				}
+
 			protected:
 				unsigned int count_;
 				ptr_type value_;

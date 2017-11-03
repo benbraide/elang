@@ -17,6 +17,8 @@ namespace elang{
 	namespace vm{
 		class machine_register{
 		public:
+			typedef unsigned __int64 uint64_type;
+
 			typedef machine_value_type_id value_type_id_type;
 			typedef machine_register_error error_type;
 
@@ -42,25 +44,32 @@ namespace elang{
 				if (sizeof(value_type) != size_)
 					throw error_type::size_mismatch;
 				else//Write
-					write_(value, std::bool_constant<std::is_integral<value_type>::value>());
+					write_(reinterpret_cast<char *>(&value));
 			}
 
 			template <typename value_type>
 			void inc(value_type value = static_cast<value_type>(1)){
-				write(read<value_type_id_type>() + value);
+				write(read<value_type>() + value);
 			}
 
 			template <typename value_type>
 			void dec(value_type value = static_cast<value_type>(1)){
-				write(read<value_type_id_type>() - value);
+				write(read<value_type>() - value);
 			}
 
 			template <typename target_type>
 			target_type read() const{
 				if (sizeof(target_type) != size_)
 					throw error_type::size_mismatch;
-				return read_<target_type>(std::bool_constant<std::is_integral<target_type>::value>());
+				
+				auto value = target_type();
+				read_(reinterpret_cast<char *>(&value));
+
+				return value;
+
 			}
+
+			virtual uint64_type read_64bits() const;
 
 			ptr_type alias(const std::string &name) const;
 
@@ -79,63 +88,22 @@ namespace elang{
 		protected:
 			void init_(size_type size, char *buffer);
 
-			template <typename value_type>
-			void write_(value_type value, std::true_type){
-				switch (size_){
-				case 1u:
-					boost::endian::detail::store_little_endian<value_type, 1u>(buffer_, value);
-					break;
-				case 2u:
-					boost::endian::detail::store_little_endian<value_type, 2u>(buffer_, value);
-					break;
-				case 4u:
-					boost::endian::detail::store_little_endian<value_type, 4u>(buffer_, value);
-					break;
-				case 8u:
-					boost::endian::detail::store_little_endian<value_type, 8u>(buffer_, value);
-					break;
-				default:
-					throw error_type::size_mismatch;
-					break;
-				}
+			virtual void write_(const char *buffer){
+#ifdef BOOST_BIG_ENDIAN
+				for (auto i = 0u; i < size_; ++i)
+					buffer_[i] = buffer[size_ - (i + 1)];
+#else	/* Little endian */
+				memcpy(buffer_, buffer, size_);
+#endif	/* BOOST_BIG_ENDIAN */
 			}
 
-			template <typename value_type>
-			void write_(value_type value, std::false_type){
-				do_write_(reinterpret_cast<char *>(&value));
-			}
-
-			virtual void do_write_(const char *buffer){
-				throw error_type::type_mismatch;
-			}
-
-			template <typename target_type>
-			target_type read_(std::true_type) const{
-				switch (size_){
-				case 1u:
-					return boost::endian::detail::load_little_endian<target_type, 1u>(buffer_);
-				case 2u:
-					return boost::endian::detail::load_little_endian<target_type, 2u>(buffer_);
-				case 4u:
-					return boost::endian::detail::load_little_endian<target_type, 4u>(buffer_);
-				case 8u:
-					return boost::endian::detail::load_little_endian<target_type, 8u>(buffer_);
-				default:
-					break;
-				}
-
-				throw error_type::size_mismatch;
-			}
-
-			template <typename target_type>
-			target_type read_(std::false_type) const{
-				auto value = target_type();
-				do_read_(reinterpret_cast<char *>(&value));
-				return value;
-			}
-
-			virtual void do_read_(char *buffer) const{
-				throw error_type::type_mismatch;
+			virtual void read_(char *buffer) const{
+#ifdef BOOST_BIG_ENDIAN
+				for (auto i = 0u; i < size_; ++i)
+					buffer[i] = buffer_[size_ - (i + 1)];
+#else	/* Little endian */
+				memcpy(buffer, buffer_, size_);
+#endif	/* BOOST_BIG_ENDIAN */
 			}
 
 			std::string name_;
@@ -158,6 +126,10 @@ namespace elang{
 				return machine_value_type<value_type>::id;
 			}
 
+			virtual uint64_type read_64bits() const override{
+				return static_cast<uint64_type>(read<value_type>());
+			}
+
 		private:
 			char buffer_[sizeof(value_type)];
 		};
@@ -177,25 +149,11 @@ namespace elang{
 				return machine_value_type<value_type>::id;
 			}
 
+			virtual uint64_type read_64bits() const override{
+				return static_cast<uint64_type>(read<value_type>());
+			}
+
 		private:
-			virtual void do_write_(const char *buffer) override{
-#ifdef BOOST_BIG_ENDIAN
-				std::reverse_copy(buffer, buffer + size_, buffer_);
-#else	/* Little endian */
-				std::copy(buffer, buffer + size_, buffer_);
-#endif	/* BOOST_BIG_ENDIAN */
-			}
-
-			virtual void do_read_(char *buffer) const override{
-#ifdef BOOST_BIG_ENDIAN
-				std::reverse_copy(buffer_, buffer_ + size_, buffer);
-				for (auto i = 0u; i < size_; ++i)
-					buffer[i] = buffer_[size_ - (i + 1)];
-#else	/* Little endian */
-				memcpy(buffer, buffer_, size_);
-#endif	/* BOOST_BIG_ENDIAN */
-			}
-
 			char buffer_[sizeof(value_type)];
 		};
 	}

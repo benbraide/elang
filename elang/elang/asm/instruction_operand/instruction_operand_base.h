@@ -71,19 +71,27 @@ namespace elang{
 
 				template <typename value_type>
 				void write(value_type value){
-					write(reinterpret_cast<char *>(&value), sizeof(value_type));
+					write(reinterpret_cast<char *>(&value), sizeof(value_type), elang::common::numeric_type_to_id<value_type>::value);
 				}
 
-				virtual void write(const char *buffer, size_type size, numeric_type_id_type type_id) = 0;
+				virtual void write(const char *buffer, size_type size, numeric_type_id_type type_id){
+					throw error_type::bad_operation;
+				}
 
 				template <typename target_type>
 				target_type read() const{
 					auto value = target_type();
-					read(reinterpret_cast<char *>(&value), sizeof(target_type));
+					read(reinterpret_cast<char *>(&value), sizeof(target_type), elang::common::numeric_type_to_id<target_type>::value);
 					return value;
 				}
 
-				virtual void read(char *buffer, size_type size, numeric_type_id_type type_id) const = 0;
+				virtual void read(char *buffer, size_type size, numeric_type_id_type type_id) const{
+					throw error_type::bad_operation;
+				}
+
+				virtual uint64_type read_64bits() const{
+					return read<uint64_type>();
+				}
 
 				virtual uint64_type effective_address() const{
 					return read<uint64_type>();
