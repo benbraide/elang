@@ -7,6 +7,7 @@
 
 #include "runtime.h"
 #include "machine_register_manager.h"
+#include "asm_translation.h"
 
 namespace elang{
 	namespace vm{
@@ -16,6 +17,7 @@ namespace elang{
 			typedef std::size_t size_type;
 
 			typedef elang::memory::manager memory_manager_type;
+			typedef elang::vm::asm_translation asm_translation_type;
 			typedef elang::vm::runtime runtime_info_type;
 
 			struct cached_register_info{
@@ -28,7 +30,9 @@ namespace elang{
 			static machine_register_manager register_manager;
 			static memory_manager_type memory_manager;
 
+			static asm_translation_type asm_translation;
 			static runtime_info_type runtime;
+
 			static thread_local cached_register_info cached_registers;
 			static size_type stack_size;
 		};

@@ -16,6 +16,7 @@ namespace elang{
 			operands_type_mismatch,
 			section_redifinition,
 			bad_instruction,
+			label_not_found,
 			no_section,
 			no_main,
 		};

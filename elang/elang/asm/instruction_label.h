@@ -27,11 +27,9 @@ namespace elang{
 
 			instruction_label *add(const std::string &label);
 
-			void create() const;
+			instruction_label *parent(unsigned int index = 0u) const;
 
-			instruction_label *parent() const;
-
-			int nested_level() const;
+			unsigned int nested_level() const;
 
 			instruction_label *find(const std::string &first, const std::vector<std::string> &rest) const;
 

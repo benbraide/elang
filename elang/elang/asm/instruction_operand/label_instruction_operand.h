@@ -3,6 +3,10 @@
 #ifndef ELANG_LABEL_INSTRUCTION_OPERAND_H
 #define ELANG_LABEL_INSTRUCTION_OPERAND_H
 
+#include "../../vm/machine.h"
+
+#include "../instruction_label.h"
+
 #include "constant_value_instruction_operand.h"
 
 namespace elang{
@@ -12,8 +16,16 @@ namespace elang{
 			public:
 				typedef constant_value_operand<unsigned __int64> base_type;
 
-				explicit label_operand(const std::string &value)
-					: base_type(value_type_id_type::qword), value_(value){}
+				typedef std::vector<std::string> string_list_type;
+
+				label_operand(const std::string &first, const string_list_type &rest)
+					: base_type(value_type_id_type::qword), first_(first), rest_(rest), label_(nullptr){
+					if (elang::vm::machine::asm_translation.active_label() != nullptr)
+						label_ = elang::vm::machine::asm_translation.active_label()->find(first_, rest_);
+
+					if (label_ == nullptr)//Schedule resolving
+						elang::vm::machine::asm_translation.add(*this);
+				}
 
 				virtual id_type id() const override{
 					return id_type::label;
@@ -28,20 +40,28 @@ namespace elang{
 				}
 
 				virtual void print(writer_type &writer, writer_type &wide_writer) const override{
-					writer << value_ << writer_type::manip_type::flush;
+					if (!first_.empty())
+						writer << first_;
+
+					for (auto &entry : rest_)
+						writer << "." << entry;
+
+					writer << writer_type::manip_type::flush;
 				}
 
 				virtual void update_constant_value_type(value_type_id_type id) override{}
 
-			protected:
-				std::string value_;
-				std::string resolved_;
-			};
+				virtual void resolve(elang::vm::asm_translation &translation){
+					if (label_ == nullptr && (value_ = translation.find_address(first_, rest_)) == static_cast<uint64_type>(-1))
+						throw error_type::label_not_found;
+					else if (label_ != nullptr)//Get value
+						value_ = translation.find(*label_);
+				}
 
-			class qualified_label_operand : public label_operand{
-			public:
-				explicit qualified_label_operand(const std::string &value)
-					: label_operand(value){}
+			protected:
+				std::string first_;
+				string_list_type rest_;
+				instruction_label *label_;
 			};
 		}
 	}

@@ -1,14 +1,10 @@
 #include "instruction_section.h"
 
 elang::easm::instruction_section_base::instruction_section_base(id_type id)
-	: id_(id){}
+	: id_(id), offset_(0), seg_offset_(0){}
 
 elang::easm::instruction_section_base::id_type elang::easm::instruction_section_base::id() const{
 	return id_;
-}
-
-void elang::easm::instruction_section_base::create() const{
-
 }
 
 void elang::easm::instruction_section_base::print(writer_type &writer, writer_type &wide_writer) const{
@@ -41,6 +37,10 @@ elang::easm::instruction_section_base::uint64_type elang::easm::instruction_sect
 	return seg_offset_;
 }
 
+elang::easm::instruction_section_base::uint64_type elang::easm::instruction_section_base::get_offset() const{
+	return offset_;
+}
+
 elang::easm::instruction_label *elang::easm::instruction_section_base::add(instruction_label *parent, const std::string &label){
 	throw error_type::bad_operation;
 }
@@ -61,6 +61,10 @@ elang::easm::instruction_section_base::uint64_type elang::easm::instruction_sect
 	throw error_type::bad_operation;
 }
 
+elang::easm::instruction_section_base::uint64_type elang::easm::instruction_section_base::find(instruction_label &label) const{
+	throw error_type::bad_operation;
+}
+
 void elang::easm::instruction_section_base::print_content_(writer_type &writer, writer_type &wide_writer) const{}
 
 elang::easm::instruction_section_base::instruction_type *elang::easm::instruction_section_base::find_(uint64_type offset) const{
@@ -73,19 +77,10 @@ elang::easm::instruction_section::instruction_section(id_type id)
 elang::easm::instruction_label *elang::easm::instruction_section::add(instruction_label *parent, const std::string &label){
 	auto entry = std::make_shared<instruction_label>(parent, label);
 
-	label_list_[entry] = offset_;
-	order_list_.push_back(entry.get());
+	label_list_[entry.get()] = offset_;
+	order_list_.push_back(entry);
 
 	return entry.get();
-}
-
-elang::easm::instruction_section_base::uint64_type elang::easm::instruction_section::find(const std::string &first, const std::vector<std::string> &rest) const{
-	for (auto &entry : label_list_){
-		if (entry.first->find(first, rest) != nullptr)
-			return entry.second;
-	}
-
-	return static_cast<uint64_type>(-1);
 }
 
 void elang::easm::instruction_section::add(instruction_ptr_type instruction){
@@ -103,6 +98,20 @@ void elang::easm::instruction_section::add(instruction_ptr_type instruction){
 	}
 
 	order_list_.push_back(instruction.get());
+}
+
+elang::easm::instruction_section_base::uint64_type elang::easm::instruction_section::find(const std::string &first, const std::vector<std::string> &rest) const{
+	for (auto &entry : label_list_){
+		if (entry.first->find(first, rest) != nullptr)
+			return (entry.second + seg_offset_);
+	}
+
+	return static_cast<uint64_type>(-1);
+}
+
+elang::easm::instruction_section_base::uint64_type elang::easm::instruction_section::find(instruction_label &label) const{
+	auto entry = label_list_.find(&label);
+	return ((entry == label_list_.end()) ? static_cast<uint64_type>(-1) : (entry->second + seg_offset_));
 }
 
 void elang::easm::instruction_section::print_content_(writer_type &writer, writer_type &wide_writer) const{

@@ -45,7 +45,7 @@ namespace elang{
 					instruction->print(*writer_, *wide_writer_);
 				}
 
-				void operator ()(const instruction_label *label) const{
+				void operator ()(const instruction_label::ptr_type label) const{
 					*writer_ << writer_type::manip_type::newline;
 					label->print(*writer_, *wide_writer_);
 				}
@@ -59,13 +59,13 @@ namespace elang{
 
 			virtual id_type id() const;
 
-			virtual void create() const;
-
 			virtual void print(writer_type &writer, writer_type &wide_writer) const;
 
 			virtual void set_seg_offset(uint64_type value);
 
 			virtual uint64_type get_seg_offset() const;
+
+			virtual uint64_type get_offset() const;
 
 			virtual instruction_label *add(instruction_label *parent, const std::string &label);
 
@@ -77,22 +77,25 @@ namespace elang{
 
 			virtual uint64_type find(const std::string &first, const std::vector<std::string> &rest) const;
 
+			virtual uint64_type find(instruction_label &label) const;
+
 		protected:
 			virtual void print_content_(writer_type &writer, writer_type &wide_writer) const;
 
 			virtual instruction_type *find_(uint64_type offset) const;
 
 			id_type id_;
+			uint64_type offset_;
 			uint64_type seg_offset_;
 		};
 
 		class instruction_section : public instruction_section_base{
 		public:
-			typedef std::variant<instruction_type *, instruction_label *> variant_type;
+			typedef std::variant<instruction_type *, instruction_label::ptr_type> variant_type;
 			typedef std::list<variant_type> order_list_type;
 
 			typedef std::unordered_map<uint64_type, instruction_ptr_type> instruction_list_type;
-			typedef std::unordered_map<instruction_label::ptr_type, uint64_type> label_list_type;
+			typedef std::unordered_map<instruction_label *, uint64_type> label_list_type;
 
 			explicit instruction_section(id_type id);
 
@@ -102,12 +105,13 @@ namespace elang{
 
 			virtual uint64_type find(const std::string &first, const std::vector<std::string> &rest) const override;
 
+			virtual uint64_type find(instruction_label &label) const override;
+
 		protected:
 			virtual void print_content_(writer_type &writer, writer_type &wide_writer) const override;
 
 			virtual instruction_type *find_(uint64_type offset) const override;
 
-			uint64_type offset_;
 			order_list_type order_list_;
 			instruction_list_type instruction_list_;
 			label_list_type label_list_;

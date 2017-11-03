@@ -1,26 +1,25 @@
+#include "../vm/machine.h"
 #include "instruction_label.h"
 
 elang::easm::instruction_label::instruction_label(instruction_label *parent, const std::string &name)
 	: parent_(parent), name_(name){}
 
 elang::easm::instruction_label *elang::easm::instruction_label::add(const std::string &label){
-	return nullptr;
+	if (elang::vm::machine::asm_translation.active_section() == nullptr)
+		throw error_type::bad_instruction;
+	return elang::vm::machine::asm_translation.active_section()->add(this, label);
 }
 
-void elang::easm::instruction_label::create() const{
-
+elang::easm::instruction_label *elang::easm::instruction_label::parent(unsigned int index) const{
+	return ((parent_ == nullptr || index == 0u) ? parent_ : parent_->parent(index - 1u));
 }
 
-elang::easm::instruction_label *elang::easm::instruction_label::parent() const{
-	return parent_;
-}
-
-int elang::easm::instruction_label::nested_level() const{
-	return ((parent_ == nullptr) ? 0 : (parent_->nested_level() + 1));
+unsigned int elang::easm::instruction_label::nested_level() const{
+	return ((parent_ == nullptr) ? 0u : (parent_->nested_level() + 1));
 }
 
 elang::easm::instruction_label *elang::easm::instruction_label::find(const std::string &first, const std::vector<std::string> &rest) const{
-	if (first == name_){
+	if ((first.empty() && parent_ == nullptr) || (!first.empty() && first == name_)){
 		if (rest.empty())
 			return const_cast<instruction_label *>(this);
 
