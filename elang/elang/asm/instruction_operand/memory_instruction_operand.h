@@ -28,6 +28,24 @@ namespace elang{
 					return value_type_id_;
 				}
 
+				virtual size_type memory_size() const override{
+					switch (value_type_id_){
+					case value_type_id_type::byte:
+						return 1u;
+					case value_type_id_type::word:
+						return 2u;
+					case value_type_id_type::dword:
+						return 4u;
+					case value_type_id_type::qword:
+					case value_type_id_type::float_:
+						return 8u;
+					default:
+						break;
+					}
+
+					return 0u;
+				}
+
 				virtual void write(const char *buffer, size_type size, numeric_type_id_type type_id) override{
 					elang::vm::machine::memory_manager.write(value_->read<uint64_type>(), buffer, size);
 				}

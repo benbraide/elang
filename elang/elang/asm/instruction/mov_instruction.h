@@ -47,6 +47,10 @@ namespace elang{
 						break;
 					}
 
+					auto source_memory_size = operands_[1]->memory_size();
+					if (source_memory_size != 0u && operands_[0]->memory_size() == source_memory_size)
+						operands_[0]->write(nullptr, source_memory_size, numeric_type_id_type::int64);
+
 					throw error_type::ambiguous_operation;
 				}
 

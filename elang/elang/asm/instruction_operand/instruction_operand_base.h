@@ -61,6 +61,10 @@ namespace elang{
 					throw instruction_error::ambiguous_operation;
 				}
 
+				virtual size_type memory_size() const{
+					return 0;
+				}
+
 				virtual void print(writer_type &writer, writer_type &wide_writer) const = 0;
 
 				virtual void update_constant_value_type(value_type_id_type id){}

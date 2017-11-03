@@ -7,6 +7,8 @@
 #include <memory>
 #include <unordered_map>
 
+#include "../common/output_writer.h"
+
 #include "runtime_error.h"
 
 namespace elang::vm{
@@ -15,17 +17,39 @@ namespace elang::vm{
 		typedef std::size_t size_type;
 		typedef std::shared_ptr<runtime_type> ptr_type;
 
+		typedef elang::common::output_writer writer_type;
+
+		runtime_type(const std::string &name, runtime_type *parent)
+			: name_(name), parent_(parent){}
+
 		virtual ~runtime_type() = default;
 
 		virtual size_type size() const = 0;
 
 		virtual runtime_type *find(const std::string &key) const = 0;
+
+		virtual runtime_type *parent() const{
+			return parent_;
+		}
+		
+		virtual void print(writer_type &writer, writer_type &wide_writer) const{
+			if (parent_ != nullptr){
+				parent_->print(writer, wide_writer);
+				writer << ".";
+			}
+
+			writer << name_ << writer_type::manip_type::flush;
+		}
+
+	protected:
+		std::string name_;
+		runtime_type *parent_;
 	};
 
 	class scalar_runtime_type : public runtime_type{
 	public:
-		explicit scalar_runtime_type(size_type size)
-			: size_(size){}
+		scalar_runtime_type(const std::string &name, runtime_type *parent, size_type size)
+			: runtime_type(name, parent), size_(size){}
 
 		virtual ~scalar_runtime_type() = default;
 
@@ -45,8 +69,8 @@ namespace elang::vm{
 	public:
 		typedef std::unordered_map<std::string, ptr_type> map_type;
 
-		compound_runtime_type()
-			: size_(0){}
+		compound_runtime_type(const std::string &name, runtime_type *parent)
+			: runtime_type(name, parent), size_(0){}
 
 		virtual ~compound_runtime_type() = default;
 
