@@ -13,6 +13,7 @@ namespace elang{
 			rodata,
 			data,
 			text,
+			type,
 		};
 
 		class instruction_section{

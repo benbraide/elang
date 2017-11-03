@@ -4,6 +4,7 @@
 #define ELANG_ASM_AST_H
 
 #include "../../asm/instruction_id.h"
+#include "../../asm/instruction_section.h"
 
 #include "../../asm/instruction_operand/constant_value_instruction_operand.h"
 #include "../../asm/instruction_operand/string_value_instruction_operand.h"
@@ -37,7 +38,7 @@ using instruction_operand_ptr_type = elang::easm::instruction::operand_base::ptr
 using instruction_ptr_type = elang::easm::instruction::base::ptr_type;
 
 ELANG_AST_DECLARE_SINGLE_WPOS(asm_integral_value, __int64)
-ELANG_AST_DECLARE_SINGLE_WPOS(asm_float_value, double)
+ELANG_AST_DECLARE_SINGLE_WPOS(asm_float_value, long double)
 
 ELANG_AST_DECLARE_SINGLE_WPOS(asm_string, std::vector<char>)
 
@@ -48,7 +49,14 @@ struct asm_absolute_identifier{
 	std::vector<asm_identifier> rest;
 };
 
+ELANG_AST_DECLARE_SINGLE_WPOS(asm_section, elang::easm::section_id)
 ELANG_AST_DECLARE_SINGLE(asm_label, asm_identifier)
+
+struct asm_relative_label{
+	std::vector<char> magnitude;
+	asm_label label;
+};
+
 ELANG_AST_DECLARE_SINGLE(asm_relative_label, asm_label)
 
 using asm_expression = instruction_operand_ptr_type;
@@ -77,6 +85,14 @@ struct asm_times_instruction{
 	asm_instruction instruction;
 };
 
+ELANG_AST_DECLARE_SINGLE_VARIANT(asm_instruction_set, asm_instruction, asm_times_instruction)
+
+struct asm_traverser{
+	static instruction_operand_ptr_type operand(const asm_operand &ast){
+		return nullptr;
+	}
+};
+
 ELANG_AST_END
 
 ELANG_AST_ADAPT_SINGLE(asm_integral_value)
@@ -90,8 +106,14 @@ BOOST_FUSION_ADAPT_STRUCT(
 	(std::vector<elang::grammar::ast::asm_identifier>, rest)
 )
 
+ELANG_AST_ADAPT_SINGLE(asm_section)
 ELANG_AST_ADAPT_SINGLE(asm_label)
-ELANG_AST_ADAPT_SINGLE(asm_relative_label)
+
+BOOST_FUSION_ADAPT_STRUCT(
+	elang::grammar::ast::asm_relative_label,
+	(std::vector<char>, magnitude)
+	(elang::grammar::ast::asm_label, label)
+)
 
 ELANG_AST_ADAPT_SINGLE(asm_grouped_expression)
 ELANG_AST_ADAPT_SINGLE(asm_memory)
@@ -115,5 +137,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 	(unsigned int, count)
 	(elang::grammar::ast::asm_instruction, instruction)
 )
+
+ELANG_AST_ADAPT_SINGLE(asm_instruction_set)
 
 #endif /* !ELANG_ASM_AST_H */
