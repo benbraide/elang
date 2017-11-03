@@ -18,3 +18,5 @@ bool elang::vm::runtime::is_inside_protected_mode(){
 thread_local unsigned int elang::vm::runtime::protected_mode_count = 0u;
 
 thread_local elang::vm::runtime_stack elang::vm::runtime::stack;
+
+elang::vm::runtime::runtime_type_manager_type elang::vm::runtime::runtime_type_manager;

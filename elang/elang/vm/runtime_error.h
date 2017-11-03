@@ -8,6 +8,7 @@ namespace elang{
 		enum class runtime_error{
 			nil,
 			not_inside_protected_mode,
+			type_redefinition,
 		};
 	}
 }
