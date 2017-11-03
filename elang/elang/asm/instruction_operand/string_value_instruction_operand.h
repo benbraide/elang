@@ -20,6 +20,11 @@ namespace elang{
 					return id_type::constant_value;
 				}
 
+				virtual void apply_value_type(value_type_id_type type) override{
+					if (value_type_ == value_type_id_type::unknown)
+						value_type_ = type;
+				}
+
 				virtual value_type_id_type value_type() const override{
 					return value_type_;
 				}

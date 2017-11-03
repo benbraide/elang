@@ -17,6 +17,11 @@ namespace elang{
 					return id_type::expression;
 				}
 
+				virtual void apply_value_type(value_type_id_type type) override{
+					left_->apply_value_type(type);
+					right_->apply_value_type(type);
+				}
+
 				virtual value_type_id_type value_type() const override{
 					return left_->value_type();
 				}

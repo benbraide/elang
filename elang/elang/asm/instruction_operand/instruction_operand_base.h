@@ -35,6 +35,8 @@ namespace elang{
 
 				virtual id_type id() const = 0;
 
+				virtual void apply_value_type(value_type_id_type type){}
+
 				virtual value_type_id_type value_type() const = 0;
 
 				virtual bool is_constant() const{
