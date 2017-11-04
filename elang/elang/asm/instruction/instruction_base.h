@@ -51,6 +51,11 @@ namespace elang{
 					return (instruction_bytes_ = (bytes + this_instruction_bytes_()));
 				}
 
+				virtual void apply_required_value_type(){
+					for (auto entry : operands_)
+						entry->apply_value_type(required_value_type());
+				}
+
 				virtual void validate_operands() const{}
 
 				virtual void execute_and_update_instruction_pointer(register_type &instruction_pointer) const{

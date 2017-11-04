@@ -88,6 +88,9 @@ elang::easm::instruction_label *elang::easm::instruction_section::add(instructio
 }
 
 void elang::easm::instruction_section::add(instruction_ptr_type instruction){
+	instruction->apply_required_value_type();
+	instruction->validate_operands();
+
 	auto times = dynamic_cast<instruction::times *>(instruction.get());
 	if (times != nullptr){//Repeat instruction
 		auto value = times->value();

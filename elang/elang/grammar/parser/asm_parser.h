@@ -110,7 +110,6 @@ namespace elang::grammar::parser{
 
 	x3::rule<class asm_section, ast::asm_section> const asm_section = "asm_section";
 	x3::rule<class asm_label, ast::asm_label> const asm_label = "asm_label";
-	x3::rule<class asm_relative_label, ast::asm_relative_label> const asm_relative_label = "asm_relative_label";
 
 	x3::rule<class asm_expression, instruction_operand_ptr_type> const asm_expression = "asm_expression";
 	x3::rule<class asm_grouped_expression, ast::asm_grouped_expression> const asm_grouped_expression = "asm_grouped_expression";
@@ -157,8 +156,7 @@ namespace elang::grammar::parser{
 	auto const asm_absolute_identifier_def = (asm_identifier >> +('.' >> asm_identifier));
 
 	auto const asm_section_def = (utils::keyword("section") >> asm_section_symbols_);
-	auto const asm_label_def = (asm_identifier >> utils::keyword(":"));
-	auto const asm_relative_label_def = (x3::lexeme[+x3::char_('.') >> asm_label]);
+	auto const asm_label_def = (x3::lexeme[*x3::char_('.') >> asm_identifier >> utils::keyword(":")]);
 
 	auto const asm_expression_def = (asm_expression_operand)[asm_parsed_single] >> *(asm_operator_symbols_ >> asm_expression_operand)[asm_parsed_expression];
 	auto const asm_grouped_expression_def = ('(' >> asm_expression >> ')');
@@ -184,7 +182,7 @@ namespace elang::grammar::parser{
 	auto const asm_times_instruction_def = (utils::keyword("times") >> x3::uint_ >> asm_instruction);
 	auto const asm_instruction_def = (utils::keyword(asm_mnemonic_symbols_) >> -((asm_typed_operand | asm_operand) % ","));
 
-	auto const asm_instruction_set_value_def = ((asm_section | asm_relative_label | asm_label | asm_times_instruction | asm_instruction | asm_type_def) >> x3::omit[(x3::eol | x3::eoi)]);
+	auto const asm_instruction_set_value_def = ((asm_section | asm_label | asm_times_instruction | asm_instruction | asm_type_def) >> x3::omit[(x3::eol | x3::eoi)]);
 	auto const asm_instruction_set_def = *(asm_instruction_set_value);
 
 	auto const asm_skip_def = (x3::space | (';' >> *x3::omit[(x3::char_ - x3::eol)]));
@@ -197,7 +195,6 @@ namespace elang::grammar::parser{
 		asm_absolute_identifier,
 		asm_section,
 		asm_label,
-		asm_relative_label,
 		asm_expression,
 		asm_grouped_expression,
 		asm_memory,

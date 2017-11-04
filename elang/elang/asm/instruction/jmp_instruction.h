@@ -71,7 +71,7 @@ namespace elang{
 			public:
 				template <typename... args_types>
 				explicit conditional_jmp(args_types &&... args)
-					: jmp("", std::forward<args_types>(args)...){
+					: jmp(std::forward<args_types>(args)...){
 					switch (id){
 					case jmp_instruction_id::jz:
 						name_ = "jz";

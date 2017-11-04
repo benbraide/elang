@@ -20,11 +20,12 @@ namespace elang{
 
 				label_operand(const std::string &first, const string_list_type &rest)
 					: base_type(value_type_id_type::qword), first_(first), rest_(rest), label_(nullptr){
-					if (elang::vm::machine::asm_translation.active_label() != nullptr)
-						label_ = elang::vm::machine::asm_translation.active_label()->find(first_, rest_);
+					init_();
+				}
 
-					if (label_ == nullptr)//Schedule resolving
-						elang::vm::machine::asm_translation.add(*this);
+				label_operand(std::string &&first, string_list_type &&rest)
+					: base_type(value_type_id_type::qword), first_(std::move(first)), rest_(std::move(rest)), label_(nullptr){
+					init_();
 				}
 
 				virtual id_type id() const override{
@@ -59,6 +60,14 @@ namespace elang{
 				}
 
 			protected:
+				void init_(){
+					if (elang::vm::machine::asm_translation.active_label() != nullptr)
+						label_ = elang::vm::machine::asm_translation.active_label()->find(first_, rest_);
+
+					if (label_ == nullptr)//Schedule resolving
+						elang::vm::machine::asm_translation.add(*this);
+				}
+
 				std::string first_;
 				string_list_type rest_;
 				instruction_label *label_;
