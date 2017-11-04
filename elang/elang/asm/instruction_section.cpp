@@ -57,11 +57,15 @@ elang::easm::instruction_section_base::instruction_type *elang::easm::instructio
 	return (is_relative ? find_(offset) : find_(offset - seg_offset_));
 }
 
-elang::easm::instruction_section_base::uint64_type elang::easm::instruction_section_base::find(const std::string &first, const std::vector<std::string> &rest) const{
+elang::easm::instruction_label *elang::easm::instruction_section_base::find(const std::string &first, const std::vector<std::string> &rest) const{
 	throw error_type::bad_operation;
 }
 
-elang::easm::instruction_section_base::uint64_type elang::easm::instruction_section_base::find(instruction_label &label) const{
+elang::easm::instruction_section_base::uint64_type elang::easm::instruction_section_base::find(const instruction_label &label) const{
+	throw error_type::bad_operation;
+}
+
+elang::easm::instruction_section_base::uint64_type elang::easm::instruction_section_base::find_address(const std::string &first, const std::vector<std::string> &rest) const{
 	throw error_type::bad_operation;
 }
 
@@ -100,18 +104,28 @@ void elang::easm::instruction_section::add(instruction_ptr_type instruction){
 	order_list_.push_back(instruction.get());
 }
 
-elang::easm::instruction_section_base::uint64_type elang::easm::instruction_section::find(const std::string &first, const std::vector<std::string> &rest) const{
+elang::easm::instruction_label *elang::easm::instruction_section::find(const std::string &first, const std::vector<std::string> &rest) const{
+	instruction_label *label = nullptr;
+	for (auto &entry : label_list_){
+		if ((label = entry.first->find(first, rest)) != nullptr)
+			return label;
+	}
+
+	return nullptr;
+}
+
+elang::easm::instruction_section_base::uint64_type elang::easm::instruction_section::find(const instruction_label &label) const{
+	auto entry = label_list_.find(const_cast<instruction_label *>(&label));
+	return ((entry == label_list_.end()) ? static_cast<uint64_type>(-1) : (entry->second + seg_offset_));
+}
+
+elang::easm::instruction_section_base::uint64_type elang::easm::instruction_section::find_address(const std::string &first, const std::vector<std::string> &rest) const{
 	for (auto &entry : label_list_){
 		if (entry.first->find(first, rest) != nullptr)
 			return (entry.second + seg_offset_);
 	}
 
 	return static_cast<uint64_type>(-1);
-}
-
-elang::easm::instruction_section_base::uint64_type elang::easm::instruction_section::find(instruction_label &label) const{
-	auto entry = label_list_.find(&label);
-	return ((entry == label_list_.end()) ? static_cast<uint64_type>(-1) : (entry->second + seg_offset_));
 }
 
 void elang::easm::instruction_section::print_content_(writer_type &writer, writer_type &wide_writer) const{

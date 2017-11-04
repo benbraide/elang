@@ -75,9 +75,11 @@ namespace elang{
 
 			virtual instruction_type *find(uint64_type offset, bool is_relative) const;
 
-			virtual uint64_type find(const std::string &first, const std::vector<std::string> &rest) const;
+			virtual instruction_label *find(const std::string &first, const std::vector<std::string> &rest) const;
 
-			virtual uint64_type find(instruction_label &label) const;
+			virtual uint64_type find(const instruction_label &label) const;
+
+			virtual uint64_type find_address(const std::string &first, const std::vector<std::string> &rest) const;
 
 		protected:
 			virtual void print_content_(writer_type &writer, writer_type &wide_writer) const;
@@ -103,9 +105,11 @@ namespace elang{
 
 			virtual void add(instruction_ptr_type instruction) override;
 
-			virtual uint64_type find(const std::string &first, const std::vector<std::string> &rest) const override;
+			virtual instruction_label *find(const std::string &first, const std::vector<std::string> &rest) const override;
 
-			virtual uint64_type find(instruction_label &label) const override;
+			virtual uint64_type find(const instruction_label &label) const override;
+
+			virtual uint64_type find_address(const std::string &first, const std::vector<std::string> &rest) const;
 
 		protected:
 			virtual void print_content_(writer_type &writer, writer_type &wide_writer) const override;

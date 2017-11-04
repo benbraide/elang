@@ -65,3 +65,33 @@ void elang::vm::asm_translation::bundle(){
 	for (auto entry : label_operand_list_)
 		entry->resolve(*this);//Resolve unresolved labels
 }
+
+elang::vm::asm_translation::label_type *elang::vm::asm_translation::find(const std::string &first, const std::vector<std::string> &rest) const{
+	label_type *label = nullptr;
+	for (auto &entry : section_map_){
+		if ((label = entry.second.find(first, rest)) != nullptr)
+			return label;
+	}
+
+	return nullptr;
+}
+
+elang::vm::asm_translation::uint64_type elang::vm::asm_translation::find(const label_type &label) const{
+	uint64_type value;
+	for (auto &entry : section_map_){
+		if ((value = entry.second.find(label)) != static_cast<uint64_type>(-1))
+			return value;
+	}
+
+	return static_cast<uint64_type>(-1);
+}
+
+elang::vm::asm_translation::uint64_type elang::vm::asm_translation::find_address(const std::string &first, const std::vector<std::string> &rest) const{
+	uint64_type value;
+	for (auto &entry : section_map_){
+		if ((value = entry.second.find_address(first, rest)) != static_cast<uint64_type>(-1))
+			return value;
+	}
+
+	return static_cast<uint64_type>(-1);
+}
