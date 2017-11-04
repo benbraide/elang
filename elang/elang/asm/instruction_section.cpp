@@ -11,16 +11,16 @@ void elang::easm::instruction_section_base::print(writer_type &writer, writer_ty
 	writer << "section .";
 	switch (id_){
 	case id_type::rodata:
-		writer << "rodata" << writer_type::manip_type::flush;
+		writer << "rodata" << writer_type::manip_type::newline;
 		break;
 	case id_type::data:
-		writer << "data" << writer_type::manip_type::flush;
+		writer << "data" << writer_type::manip_type::newline;
 		break;
 	case id_type::text:
-		writer << "text" << writer_type::manip_type::flush;
+		writer << "text" << writer_type::manip_type::newline;
 		break;
 	case id_type::type:
-		writer << "type" << writer_type::manip_type::flush;
+		writer << "type" << writer_type::manip_type::newline;
 		break;
 	default:
 		break;

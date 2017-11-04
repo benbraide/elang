@@ -1,0 +1,4 @@
+section .text
+main:
+	mov eax, eip
+	lea rdi, [20h]

@@ -41,13 +41,14 @@ namespace elang{
 					: writer_(&writer), wide_writer_(&wide_writer){}
 
 				void operator ()(const instruction_type *instruction) const{
-					*writer_ << writer_type::manip_type::newline << std::string(2, ' ') << writer_type::manip_type::flush;
+					*writer_ << std::string(2, ' ') << writer_type::manip_type::flush;
 					instruction->print(*writer_, *wide_writer_);
+					*writer_ << writer_type::manip_type::newline;
 				}
 
 				void operator ()(const instruction_label::ptr_type label) const{
-					*writer_ << writer_type::manip_type::newline;
 					label->print(*writer_, *wide_writer_);
+					*writer_ << writer_type::manip_type::newline;
 				}
 
 			private:

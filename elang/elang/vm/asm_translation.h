@@ -20,6 +20,7 @@ namespace elang::vm{
 		typedef unsigned int uint_type;
 
 		typedef std::size_t size_type;
+		typedef elang::common::output_writer writer_type;
 
 		typedef elang::easm::section_id section_id_type;
 		typedef elang::easm::instruction_section section_type;
@@ -52,6 +53,8 @@ namespace elang::vm{
 		uint64_type find(const label_type &label) const;
 
 		uint64_type find_address(const std::string &first, const std::vector<std::string> &rest) const;
+
+		void print(writer_type &writer, writer_type &wide_writer) const;
 
 	private:
 		label_type *active_label_;
