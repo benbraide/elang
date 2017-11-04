@@ -102,6 +102,8 @@ namespace elang{
 
 			explicit instruction_section(id_type id);
 
+			virtual void set_seg_offset(uint64_type value) override;
+
 			virtual instruction_label *add(instruction_label *parent, const std::string &label) override;
 
 			virtual void add(instruction_ptr_type instruction) override;

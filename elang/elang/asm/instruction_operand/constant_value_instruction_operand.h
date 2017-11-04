@@ -81,11 +81,27 @@ namespace elang{
 					return static_cast<uint64_type>(value_);
 				}
 
-				virtual void write_to_memory(char *buffer) override{
-					if (value_type_ == value_type_id_type::unknown)
+				virtual void write_to_memory(char *buffer) const override{
+					switch (value_type_){
+					case value_type_id_type::byte:
+						write_to_memory_<__int8>(buffer);
+						break;
+					case value_type_id_type::word:
+						write_to_memory_<__int16>(buffer);
+						break;
+					case value_type_id_type::dword:
+						write_to_memory_<__int32>(buffer);
+						break;
+					case value_type_id_type::qword:
+						write_to_memory_<__int64>(buffer);
+						break;
+					case value_type_id_type::float_:
+						write_to_memory_<long double>(buffer);
+						break;
+					default:
 						operand_base::write_to_memory(buffer);
-					else//Write bytes
-						memcpy(buffer, &value_, sizeof(operand_value_type));
+						break;
+					}
 				}
 
 				virtual void print(writer_type &writer, writer_type &wide_writer) const override{
@@ -99,7 +115,14 @@ namespace elang{
 			protected:
 				template <typename target_type>
 				void read_(char *buffer) const{
-					*reinterpret_cast<target_type *>(buffer) = static_cast<target_type>(value_);
+					auto value = static_cast<target_type>(value_);
+					memcpy(buffer, &value, sizeof(target_type));
+				}
+
+				template <typename target_type>
+				void write_to_memory_(char *buffer) const{
+					auto value = static_cast<target_type>(value_);
+					memcpy(buffer, &value, sizeof(target_type));
 				}
 
 				value_type_id_type value_type_;

@@ -42,7 +42,7 @@ namespace elang{
 					return eval_()->read_64bits();
 				}
 
-				virtual void write_to_memory(char *buffer) override{
+				virtual void write_to_memory(char *buffer) const override{
 					eval_()->write_to_memory(buffer);
 				}
 

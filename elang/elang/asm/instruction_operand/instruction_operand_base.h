@@ -97,7 +97,7 @@ namespace elang{
 					return read<uint64_type>();
 				}
 
-				virtual void push_onto_stack(){
+				virtual void push_onto_stack() const{
 					throw error_type::bad_operation;
 				}
 
@@ -105,7 +105,7 @@ namespace elang{
 					throw error_type::bad_operation;
 				}
 
-				virtual void write_to_memory(char *buffer){
+				virtual void write_to_memory(char *buffer) const{
 					throw error_type::bad_operation;
 				}
 			};

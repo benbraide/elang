@@ -40,7 +40,7 @@ void elang::easm::instruction_label::print(writer_type &writer, writer_type &wid
 	if (level_count > 0)//Write prefix
 		writer << std::string(level_count, '.');
 
-	writer << name_ << writer_type::manip_type::flush;
+	writer << name_ << ":" << writer_type::manip_type::flush;
 }
 
 elang::easm::instruction_label *elang::easm::instruction_label::find_(string_list_iterator_type iter, string_list_iterator_type end) const{

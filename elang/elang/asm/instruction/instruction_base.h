@@ -58,6 +58,10 @@ namespace elang{
 
 				virtual void validate_operands() const{}
 
+				virtual void write_memory(uint64_type &address) const{
+					address += instruction_bytes();
+				}
+
 				virtual void execute_and_update_instruction_pointer(register_type &instruction_pointer) const{
 					execute();
 					instruction_pointer.inc<uint64_type>(instruction_bytes());//Advance Instruction Pointer

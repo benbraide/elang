@@ -53,7 +53,7 @@ elang::vm::asm_translation::label_type *elang::vm::asm_translation::active_label
 }
 
 void elang::vm::asm_translation::bundle(){
-	uint64_type seg_offset = 0u;
+	uint64_type seg_offset = (elang::vm::machine::access_protected.to + 1u);
 	for (auto id : section_order_){
 		auto entry = section_map_.find(id);
 		if (entry != section_map_.end()){//Update 'seg_offset'

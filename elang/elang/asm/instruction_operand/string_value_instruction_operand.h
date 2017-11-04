@@ -44,7 +44,7 @@ namespace elang{
 					return ((overflow == 0u) ? (char_count) : (char_count + (byte_size - overflow)));//Ensure value is a multiple of 'byte_size'
 				}
 
-				virtual void write_to_memory(char *buffer) override{
+				virtual void write_to_memory(char *buffer) const override{
 					if (value_type_ == value_type_id_type::unknown)
 						operand_base::write_to_memory(buffer);
 					else//Write bytes

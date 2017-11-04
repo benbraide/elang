@@ -115,7 +115,7 @@ namespace elang{
 					writer << *value_ << writer_type::manip_type::flush;
 				}
 
-				virtual void push_onto_stack() override{
+				virtual void push_onto_stack() const override{
 					value_->push_onto_stack();
 				}
 

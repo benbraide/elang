@@ -35,6 +35,7 @@ namespace elang{
 
 			static thread_local cached_register_info cached_registers;
 			static size_type stack_size;
+			static memory_manager_type::range_type access_protected;
 		};
 	}
 }

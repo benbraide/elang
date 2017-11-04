@@ -36,7 +36,7 @@ namespace elang{
 					return 0;
 				}
 
-				virtual void write_to_memory(char *buffer) override{
+				virtual void write_to_memory(char *buffer) const override{
 					throw error_type::bad_operation;
 				}
 

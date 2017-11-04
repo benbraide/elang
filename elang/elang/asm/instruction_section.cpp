@@ -1,3 +1,4 @@
+#include "../vm/machine.h"
 #include "instruction_section.h"
 
 elang::easm::instruction_section_base::instruction_section_base(id_type id)
@@ -31,6 +32,8 @@ void elang::easm::instruction_section_base::print(writer_type &writer, writer_ty
 
 void elang::easm::instruction_section_base::set_seg_offset(uint64_type value){
 	seg_offset_ = value;
+	if (id() == id_type::rodata)//Protect region from write
+		elang::vm::machine::memory_manager.protect_from_write(elang::memory::manager::range_type{ seg_offset_, (seg_offset_ + (offset_ - 1)) });
 }
 
 elang::easm::instruction_section_base::uint64_type elang::easm::instruction_section_base::get_seg_offset() const{
@@ -77,6 +80,16 @@ elang::easm::instruction_section_base::instruction_type *elang::easm::instructio
 
 elang::easm::instruction_section::instruction_section(id_type id)
 	: instruction_section_base(id){}
+
+void elang::easm::instruction_section::set_seg_offset(uint64_type value){
+	instruction_section_base::set_seg_offset(value);
+
+	auto seg_offset = seg_offset_;
+	for (auto &entry : order_list_){//Write instructions to memory
+		if (std::holds_alternative<instruction_type *>(entry))
+			std::get<instruction_type *>(entry)->write_memory(seg_offset);
+	}
+}
 
 elang::easm::instruction_label *elang::easm::instruction_section::add(instruction_label *parent, const std::string &label){
 	auto entry = std::make_shared<instruction_label>(parent, label);

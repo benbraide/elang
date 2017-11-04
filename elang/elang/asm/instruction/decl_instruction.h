@@ -3,6 +3,8 @@
 #ifndef ELANG_DECL_INSTRUCTION_H
 #define ELANG_DECL_INSTRUCTION_H
 
+#include "../../vm/machine.h"
+
 #include "instruction_base.h"
 
 namespace elang{
@@ -39,6 +41,10 @@ namespace elang{
 					return value_type_id;
 				}
 
+				virtual void apply_required_value_type() override{
+					base::apply_required_value_type();
+				}
+
 				virtual void validate_operands() const override{
 					if (operands_.empty())
 						throw error_type::bad_operand_count;
@@ -47,6 +53,18 @@ namespace elang{
 						if (!operand->is_constant())//Constant value required
 							throw error_type::bad_operand;
 					}
+				}
+
+				virtual void write_memory(uint64_type &address) const override{
+					auto block = elang::vm::machine::memory_manager.allocate(instruction_bytes(), address);
+					auto data = block->data.get();
+
+					for (auto operand : operands_){//Write operands
+						operand->write_to_memory(data);
+						data += operand->instruction_bytes();
+					}
+
+					address += block->actual_size;
 				}
 
 				virtual void execute_and_update_instruction_pointer(register_type &instruction_pointer) const override{}

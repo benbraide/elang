@@ -14,6 +14,11 @@ namespace elang{
 				explicit mov(args_types &&... args)
 					: base("mov", std::forward<args_types>(args)...){}
 
+				virtual void apply_required_value_type() override{
+					if (operands_.size() == 2u)
+						operands_[1]->apply_value_type(operands_[0]->value_type());
+				}
+
 				virtual void validate_operands() const override{
 					if (operands_.size() != 2u)
 						throw error_type::bad_operand_count;

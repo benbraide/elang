@@ -28,7 +28,7 @@ namespace elang::easm::instruction{
 		}
 
 		virtual void write(const char *buffer, size_type size, numeric_type_id_type type_id) override{
-			elang::vm::machine::memory_manager.write(value_->read<uint64_type>(), buffer, size);
+			elang::vm::machine::memory_manager.write(value_->read_64bits(), buffer, size);
 		}
 
 		virtual void read(char *buffer, size_type size, numeric_type_id_type type_id) const override{
