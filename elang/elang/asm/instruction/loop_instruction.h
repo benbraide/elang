@@ -32,7 +32,7 @@ namespace elang{
 					auto reg = elang::vm::machine::register_manager.find("ecx");
 					if (reg->read<unsigned int>() != 0u){//Do loop
 						reg->dec<unsigned int>();//Decrement counter
-						elang::vm::machine::cached_registers.instruction_pointer->write(operands_[0]->read<uint64_type>());//Jump
+						elang::vm::machine::cached_registers.instruction_pointer->write(operands_[0]->read_64bits());//Jump
 					}
 				}
 			};

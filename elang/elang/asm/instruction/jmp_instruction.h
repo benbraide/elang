@@ -34,7 +34,7 @@ namespace elang{
 
 				virtual void execute() const override{
 					if (test_())//Passed test -- do jump
-						elang::vm::machine::cached_registers.instruction_pointer->write(operands_[0]->read<uint64_type>());
+						elang::vm::machine::cached_registers.instruction_pointer->write(operands_[0]->read_64bits());
 				}
 
 			protected:

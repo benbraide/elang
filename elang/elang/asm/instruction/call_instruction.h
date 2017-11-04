@@ -24,8 +24,8 @@ namespace elang{
 					if (operands_.size() != 1u)
 						throw error_type::bad_operand_count;
 
-					if (operands_[0]->value_type() != value_type_id_type::qword)
-						throw error_type::operands_type_mismatch;
+					if (operands_[0]->id() != operand_id_type::label)
+						throw error_type::bad_operand;
 				}
 
 				virtual void execute_and_update_instruction_pointer(register_type &instruction_pointer) const override{
@@ -35,7 +35,7 @@ namespace elang{
 				virtual void execute() const override{
 					elang::vm::machine::cached_registers.instruction_pointer->inc(instruction_bytes());
 					elang::vm::machine::cached_registers.instruction_pointer->push_onto_stack();
-					elang::vm::machine::cached_registers.instruction_pointer->write(operands_[0]->read<uint64_type>());
+					elang::vm::machine::cached_registers.instruction_pointer->write(operands_[0]->read_64bits());
 				}
 			};
 		}

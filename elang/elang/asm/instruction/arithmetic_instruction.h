@@ -114,9 +114,17 @@ namespace elang{
 					}
 				}
 
+				virtual void apply_required_value_type() override{
+					if (operands_.size() == 2u)
+						operands_[1]->apply_value_type(operands_[0]->value_type());
+				}
+
 				virtual void validate_operands() const override{
 					if (operands_.size() != 2u)
 						throw error_type::bad_operand_count;
+
+					if (operands_[0]->id() != operand_id_type::register_value)
+						throw error_type::bad_operand;
 
 					if (operands_[0]->value_type() != operands_[1]->value_type())
 						throw error_type::operands_type_mismatch;
