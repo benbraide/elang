@@ -1,0 +1,32 @@
+#pragma once
+
+#ifndef ELANG_SYSCALL_INSTRUCTION_H
+#define ELANG_SYSCALL_INSTRUCTION_H
+
+#include "../../vm/syscall.h"
+
+#include "instruction_base.h"
+
+namespace elang{
+	namespace easm{
+		namespace instruction{
+			class syscall : public base{
+			public:
+				template <typename... args_types>
+				explicit syscall(args_types &&... args)
+					: base("syscall", std::forward<args_types>(args)...){}
+
+				virtual void validate_operands() const override{
+					if (!operands_.empty())
+						throw error_type::bad_operand_count;
+				}
+
+				virtual void execute() const override{
+					elang::vm::syscall::entry();
+				}
+			};
+		}
+	}
+}
+
+#endif /* !ELANG_SYSCALL_INSTRUCTION_H */

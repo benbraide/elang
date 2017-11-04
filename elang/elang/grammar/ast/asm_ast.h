@@ -27,6 +27,7 @@
 #include "../../asm/instruction/lea_instruction.h"
 #include "../../asm/instruction/stack_instruction.h"
 #include "../../asm/instruction/test_instruction.h"
+#include "../../asm/instruction/syscall_instruction.h"
 #include "../../asm/instruction/times_instruction.h"
 #include "../../asm/instruction/decl_instruction.h"
 
@@ -102,7 +103,7 @@ struct asm_traverser{
 		case elang::easm::instruction::id::pop:
 			return std::make_shared<elang::easm::instruction::pop>(std::move(operands));
 		case elang::easm::instruction::id::int_:
-			//return std::make_shared<elang::easm::instruction::int_>(std::move(operands));
+			return std::make_shared<elang::easm::instruction::syscall>(std::move(operands));
 		case elang::easm::instruction::id::call:
 			return std::make_shared<elang::easm::instruction::call>(std::move(operands));
 		case elang::easm::instruction::id::jmp:

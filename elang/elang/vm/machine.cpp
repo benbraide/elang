@@ -1,5 +1,13 @@
 #include "machine.h"
 
+void elang::vm::machine::boot(){
+	
+}
+
+void elang::vm::machine::shutdown(){
+
+}
+
 elang::vm::machine_register_manager elang::vm::machine::register_manager;
 
 elang::vm::machine::memory_manager_type elang::vm::machine::memory_manager;

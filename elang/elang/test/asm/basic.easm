@@ -2,3 +2,5 @@ section .text
 main:
 	mov eax, eip
 	lea rdi, [20h]
+	mov rax, 0
+	syscall

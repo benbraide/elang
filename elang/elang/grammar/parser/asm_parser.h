@@ -42,7 +42,7 @@ namespace elang::grammar::parser{
 				("ret", elang::easm::instruction::id::ret)
 				("push", elang::easm::instruction::id::push)
 				("pop", elang::easm::instruction::id::pop)
-				("int", elang::easm::instruction::id::int_)
+				("syscall", elang::easm::instruction::id::int_)
 				("call", elang::easm::instruction::id::call)
 				("jmp", elang::easm::instruction::id::jmp)
 				("jz", elang::easm::instruction::id::jz)

@@ -27,6 +27,10 @@ namespace elang{
 				machine_register *compare_target;
 			};
 
+			static void boot();
+
+			static void shutdown();
+
 			static machine_register_manager register_manager;
 			static memory_manager_type memory_manager;
 
