@@ -65,9 +65,13 @@ namespace elang::easm::instruction{
 			address += block->actual_size;
 		}
 
-		virtual void execute_and_update_instruction_pointer(register_type &instruction_pointer) const override{}
+		virtual void execute_and_update_instruction_pointer(register_type &instruction_pointer) const override{
+			execute();
+		}
 
-		virtual void execute() const override{}
+		virtual void execute() const override{
+			throw error_type::no_execution;
+		}
 
 	protected:
 		virtual size_type this_instruction_bytes_() const override{

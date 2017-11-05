@@ -20,5 +20,5 @@ void elang::vm::syscall::entry(){
 }
 
 void elang::vm::syscall::exit(){
-	machine::shutdown();
+	machine::shutdown(false);
 }

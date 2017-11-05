@@ -10,10 +10,18 @@
 #include "asm_translation.h"
 
 namespace elang::vm{
+	enum class machine_error{
+		nil,
+		no_start_label,
+		no_instruction,
+	};
+
 	class machine{
 	public:
 		typedef unsigned __int64 uint64_type;
 		typedef std::size_t size_type;
+
+		typedef machine_error error_type;
 
 		typedef elang::memory::manager memory_manager_type;
 		typedef elang::vm::asm_translation asm_translation_type;
@@ -28,7 +36,9 @@ namespace elang::vm{
 
 		static void boot();
 
-		static void shutdown();
+		static void shutdown(bool thread);
+
+		static void run();
 
 		static machine_register_manager register_manager;
 		static memory_manager_type memory_manager;
@@ -37,8 +47,13 @@ namespace elang::vm{
 		static runtime_info_type runtime;
 
 		static thread_local cached_register_info cached_registers;
-		static size_type stack_size;
 		static memory_manager_type::range_type access_protected;
+
+		static size_type stack_size;
+		static const std::string start_label;
+
+		static bool running;
+		static thread_local bool running_thread;
 	};
 }
 

@@ -18,11 +18,13 @@ namespace elang::easm{
 		data,
 		text,
 		type,
+		meta,
 	};
 
 	class instruction_section_base{
 	public:
 		typedef unsigned __int64 uint64_type;
+		typedef std::size_t size_type;
 
 		typedef section_id id_type;
 		typedef instruction_error error_type;
@@ -50,6 +52,14 @@ namespace elang::easm{
 				*writer_ << writer_type::manip_type::newline;
 			}
 
+			void operator ()(const std::string &start_label) const{
+				*writer_ << std::string(2, ' ') << ".start_label " << start_label << writer_type::manip_type::newline;
+			}
+
+			void operator ()(size_type stack_size) const{
+				*writer_ << std::string(2, ' ') << ".stack_size " << stack_size << writer_type::manip_type::newline;
+			}
+
 		private:
 			writer_type *writer_;
 			writer_type *wide_writer_;
@@ -73,6 +83,10 @@ namespace elang::easm{
 
 		virtual void add(runtime_ptr_type type);
 
+		virtual void add(const std::string &start_label);
+
+		virtual void add(size_type stack_size);
+
 		virtual instruction_type *find(uint64_type offset, bool is_relative) const;
 
 		virtual instruction_label *find(const std::string &first, const std::vector<std::string> &rest) const;
@@ -93,6 +107,9 @@ namespace elang::easm{
 
 	class instruction_section : public instruction_section_base{
 	public:
+		using instruction_section_base::add;
+		using instruction_section_base::find;
+
 		typedef std::variant<instruction_type *, instruction_label::ptr_type> variant_type;
 		typedef std::list<variant_type> order_list_type;
 

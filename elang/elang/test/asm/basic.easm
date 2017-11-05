@@ -1,5 +1,5 @@
 section .text
-main:
+_start:
 	mov eax, eip
 	lea rdi, [20h]
 	mov rax, 0

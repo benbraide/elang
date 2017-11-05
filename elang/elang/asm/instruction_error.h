@@ -6,6 +6,7 @@
 namespace elang::easm{
 	enum class instruction_error{
 		nil,
+		no_execution,
 		bad_operation,
 		ambiguous_operation,
 		bad_conversion,

@@ -45,15 +45,23 @@ elang::easm::instruction_section_base::uint64_type elang::easm::instruction_sect
 }
 
 elang::easm::instruction_label *elang::easm::instruction_section_base::add(instruction_label *parent, const std::string &label){
-	throw error_type::bad_operation;
+	throw error_type::bad_instruction;
 }
 
 void elang::easm::instruction_section_base::add(instruction_ptr_type instruction){
-	throw error_type::bad_operation;
+	throw error_type::bad_instruction;
 }
 
 void elang::easm::instruction_section_base::add(runtime_ptr_type type){
-	throw error_type::bad_operation;
+	throw error_type::bad_instruction;
+}
+
+void elang::easm::instruction_section_base::add(const std::string &start_label){
+	throw error_type::bad_instruction;
+}
+
+void elang::easm::instruction_section_base::add(size_type stack_size){
+	throw error_type::bad_instruction;
 }
 
 elang::easm::instruction_section_base::instruction_type *elang::easm::instruction_section_base::find(uint64_type offset, bool is_relative) const{

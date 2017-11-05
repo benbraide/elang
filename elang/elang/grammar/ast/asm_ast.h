@@ -213,17 +213,11 @@ struct asm_traverser{
 	}
 
 	void operator()(const asm_instruction &ast) const{
-		if (elang::vm::machine::asm_translation.active_section() == nullptr)
-			throw elang::easm::instruction_error::no_section;
-		else//Add instruction
-			elang::vm::machine::asm_translation.active_section()->add(instruction(ast));
+		elang::vm::machine::asm_translation.add(instruction(ast));
 	}
 
 	void operator()(const asm_times_instruction &ast) const{
-		if (elang::vm::machine::asm_translation.active_section() == nullptr)
-			throw elang::easm::instruction_error::no_section;
-		else//Add instruction
-			elang::vm::machine::asm_translation.active_section()->add(std::make_shared<elang::easm::instruction::times>(ast.first, instruction(ast.second)));
+		elang::vm::machine::asm_translation.add(std::make_shared<elang::easm::instruction::times>(ast.first, instruction(ast.second)));
 	}
 
 	void operator()(const asm_type_def &ast) const{

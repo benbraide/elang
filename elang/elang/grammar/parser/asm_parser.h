@@ -19,6 +19,7 @@ namespace elang::grammar::parser{
 				(".data", elang::easm::section_id::data)
 				(".text", elang::easm::section_id::text)
 				(".type", elang::easm::section_id::type)
+				(".meta", elang::easm::section_id::meta)
 				;
 		}
 	} asm_section_symbols_;

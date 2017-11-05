@@ -45,13 +45,13 @@ namespace elang::grammar{
 			value.append(ast.rest.data(), ast.rest.size());
 		}
 
-		static void escape_string(const char *data, const char *end, std::string out){
+		static void escape_string(const char *data, const char *end, std::string &out){
 			out.reserve(end - data + 1);//Reserve maximum possible size
 			for (; data != end; ++data)
 				out.append(1u, escaped_char<char>(data, end));
 		}
 
-		static void escape_string(const char *data, const char *end, std::wstring out){
+		static void escape_string(const char *data, const char *end, std::wstring &out){
 			out.reserve(end - data + 1);//Reserve maximum possible size
 			for (; data != end; ++data)
 				out.append(1u, escaped_char<wchar_t>(data, end));
