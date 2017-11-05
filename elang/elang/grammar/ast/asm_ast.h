@@ -31,6 +31,8 @@
 #include "../../asm/instruction/times_instruction.h"
 #include "../../asm/instruction/decl_instruction.h"
 
+#include "../../asm/instruction/extended/extended_arithmetic_instruction.h"
+
 #include "../grammar_utils.h"
 
 #define ELANG_AST_CREATE_INSTRUCTION(name)\
@@ -69,7 +71,11 @@ ELANG_AST_DECLARE_PAIR_WPOS(asm_typed_operand, elang::vm::machine_value_type_id,
 using asm_instruction_variant = boost::variant<asm_operand, asm_typed_operand>;
 
 ELANG_AST_DECLARE_PAIR_WPOS(asm_instruction, elang::easm::instruction::id, std::vector<asm_instruction_variant>)
-ELANG_AST_DECLARE_PAIR_WPOS(asm_times_instruction, unsigned int, asm_instruction)
+ELANG_AST_DECLARE_PAIR_WPOS(asm_extended_instruction, elang::easm::instruction::id, std::vector<asm_instruction_variant>)
+
+using asm_times_instruction_variant = boost::variant<asm_instruction, asm_extended_instruction>;
+
+ELANG_AST_DECLARE_PAIR_WPOS(asm_times_instruction, unsigned int, asm_times_instruction_variant)
 
 struct asm_type_def;
 
@@ -89,11 +95,8 @@ struct asm_traverser{
 			boost::apply_visitor(asm_traverser(), entry.value);
 	}
 
-	static instruction_ptr_type instruction(const asm_instruction &ast){
-		std::vector<instruction_operand_ptr_type> operands;
-		asm_traverser::operands(ast.second, operands);
-
-		switch (ast.first){
+	static instruction_ptr_type instruction(elang::easm::instruction::id id, const std::vector<instruction_operand_ptr_type> &operands){
+		switch (id){
 		case elang::easm::instruction::id::nop:
 			return std::make_shared<elang::easm::instruction::nop>(std::move(operands));
 		case elang::easm::instruction::id::ret:
@@ -185,6 +188,44 @@ struct asm_traverser{
 		throw elang::easm::instruction_error::bad_instruction;
 	}
 
+	static instruction_ptr_type instruction(const asm_instruction &ast){
+		std::vector<instruction_operand_ptr_type> operands;
+		asm_traverser::operands(ast.second, operands);
+		return instruction(ast.first, operands);
+	}
+
+	static instruction_ptr_type instruction(const asm_extended_instruction &ast){
+		std::vector<instruction_operand_ptr_type> operands;
+		asm_traverser::operands(ast.second, operands);
+
+		switch (ast.first){
+		case elang::easm::instruction::id::add:
+			return std::make_shared<elang::easm::instruction::ex_add>(std::move(operands));
+		case elang::easm::instruction::id::sub:
+			return std::make_shared<elang::easm::instruction::ex_sub>(std::move(operands));
+		case elang::easm::instruction::id::mult:
+			return std::make_shared<elang::easm::instruction::ex_mult>(std::move(operands));
+		case elang::easm::instruction::id::div:
+			return std::make_shared<elang::easm::instruction::ex_div>(std::move(operands));
+		case elang::easm::instruction::id::mod:
+			return std::make_shared<elang::easm::instruction::ex_mod>(std::move(operands));
+		case elang::easm::instruction::id::and_:
+			return std::make_shared<elang::easm::instruction::ex_and_>(std::move(operands));
+		case elang::easm::instruction::id::xor_:
+			return std::make_shared<elang::easm::instruction::ex_xor_>(std::move(operands));
+		case elang::easm::instruction::id::or_:
+			return std::make_shared<elang::easm::instruction::ex_or_>(std::move(operands));
+		case elang::easm::instruction::id::sal:
+			return std::make_shared<elang::easm::instruction::ex_sal>(std::move(operands));
+		case elang::easm::instruction::id::sar:
+			return std::make_shared<elang::easm::instruction::ex_sar>(std::move(operands));
+		default:
+			break;
+		}
+
+		return instruction(ast.first, operands);
+	}
+
 	static instruction_operand_ptr_type operand(const asm_instruction_variant &var){
 		return boost::apply_visitor(asm_traverser(), var);
 	}
@@ -216,8 +257,18 @@ struct asm_traverser{
 		elang::vm::machine::asm_translation.add(instruction(ast));
 	}
 
+	void operator()(const asm_extended_instruction &ast) const{
+		elang::vm::machine::asm_translation.add(instruction(ast));
+	}
+
 	void operator()(const asm_times_instruction &ast) const{
-		elang::vm::machine::asm_translation.add(std::make_shared<elang::easm::instruction::times>(ast.first, instruction(ast.second)));
+		instruction_ptr_type value;
+		if (ast.second.which() == 0)
+			value = instruction(boost::get<asm_instruction>(ast.second));
+		else//Extended
+			value = instruction(boost::get<asm_extended_instruction>(ast.second));
+
+		elang::vm::machine::asm_translation.add(std::make_shared<elang::easm::instruction::times>(ast.first, value));
 	}
 
 	void operator()(const asm_type_def &ast) const{
@@ -308,6 +359,7 @@ ELANG_AST_ADAPT_SINGLE(asm_operand)
 ELANG_AST_ADAPT_PAIR(asm_typed_operand)
 
 ELANG_AST_ADAPT_PAIR(asm_instruction)
+ELANG_AST_ADAPT_PAIR(asm_extended_instruction)
 ELANG_AST_ADAPT_PAIR(asm_times_instruction)
 
 ELANG_AST_ADAPT_SINGLE(asm_struct_def_value)

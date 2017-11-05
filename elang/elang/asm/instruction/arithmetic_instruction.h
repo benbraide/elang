@@ -118,14 +118,13 @@ namespace elang::easm::instruction{
 		}
 
 		virtual void validate_operands() const override{
-			if (operands_.size() != 2u)
+			if (operands_.size() != operand_count_())
 				throw error_type::bad_operand_count;
 
 			if (operands_[0]->id() != operand_id_type::register_value)
 				throw error_type::bad_operand;
 
-			if (operands_[0]->value_type() != operands_[1]->value_type())
-				throw error_type::operands_type_mismatch;
+			check_mismatch_();
 		}
 
 		virtual void execute() const override{
@@ -148,17 +147,26 @@ namespace elang::easm::instruction{
 		}
 
 	protected:
+		virtual size_type operand_count_() const{
+			return 2u;
+		}
+
+		virtual void check_mismatch_() const{
+			if (operands_[0]->value_type() != operands_[1]->value_type())
+				throw error_type::operands_type_mismatch;
+		}
+
 		template <typename target_type>
 		void execute_() const{
 			switch (id){
 			case operator_id_type::add:
-				return operands_[0]->write(static_cast<target_type>(operands_[0]->read<target_type>() + operands_[1]->read<target_type>()));
+				return target_()->write(static_cast<target_type>(left_()->read<target_type>() + right_()->read<target_type>()));
 			case operator_id_type::sub:
-				return operands_[0]->write(static_cast<target_type>(operands_[0]->read<target_type>() - operands_[1]->read<target_type>()));
+				return target_()->write(static_cast<target_type>(left_()->read<target_type>() - right_()->read<target_type>()));
 			case operator_id_type::mult:
-				return operands_[0]->write(static_cast<target_type>(operands_[0]->read<target_type>() * operands_[1]->read<target_type>()));
+				return target_()->write(static_cast<target_type>(left_()->read<target_type>() * right_()->read<target_type>()));
 			case operator_id_type::div:
-				return operands_[0]->write(static_cast<target_type>(operands_[0]->read<target_type>() / operands_[1]->read<target_type>()));
+				return target_()->write(static_cast<target_type>(left_()->read<target_type>() / right_()->read<target_type>()));
 			default:
 				break;
 			}
@@ -170,22 +178,34 @@ namespace elang::easm::instruction{
 		void execute_integral_() const{
 			switch (id){
 			case operator_id_type::mod:
-				return operands_[0]->write(static_cast<target_type>(operands_[0]->read<target_type>() % operands_[1]->read<target_type>()));
+				return target_()->write(static_cast<target_type>(left_()->read<target_type>() % right_()->read<target_type>()));
 			case operator_id_type::and_:
-				return operands_[0]->write(static_cast<target_type>(operands_[0]->read<target_type>() & operands_[1]->read<target_type>()));
+				return target_()->write(static_cast<target_type>(left_()->read<target_type>() & right_()->read<target_type>()));
 			case operator_id_type::xor_:
-				return operands_[0]->write(static_cast<target_type>(operands_[0]->read<target_type>() ^ operands_[1]->read<target_type>()));
+				return target_()->write(static_cast<target_type>(left_()->read<target_type>() ^ right_()->read<target_type>()));
 			case operator_id_type::or_:
-				return operands_[0]->write(static_cast<target_type>(operands_[0]->read<target_type>() | operands_[1]->read<target_type>()));
+				return target_()->write(static_cast<target_type>(left_()->read<target_type>() | right_()->read<target_type>()));
 			case operator_id_type::sal:
-				return operands_[0]->write(static_cast<target_type>(operands_[0]->read<target_type>() << operands_[1]->read<target_type>()));
+				return target_()->write(static_cast<target_type>(left_()->read<target_type>() << right_()->read<target_type>()));
 			case operator_id_type::sar:
-				return operands_[0]->write(static_cast<target_type>(operands_[0]->read<target_type>() >> operands_[1]->read<target_type>()));
+				return target_()->write(static_cast<target_type>(left_()->read<target_type>() >> right_()->read<target_type>()));
 			default:
 				break;
 			}
 
 			return execute_<target_type>();
+		}
+
+		virtual operand_ptr_type target_() const{
+			return operands_[0];
+		}
+
+		virtual operand_ptr_type left_() const{
+			return operands_[0];
+		}
+
+		virtual operand_ptr_type right_() const{
+			return operands_[1];
 		}
 	};
 
