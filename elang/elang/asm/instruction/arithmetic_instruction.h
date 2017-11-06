@@ -154,6 +154,9 @@ namespace elang::easm::instruction{
 		virtual void check_mismatch_() const{
 			if (operands_[0]->value_type() != operands_[1]->value_type())
 				throw error_type::operands_type_mismatch;
+
+			if (operands_[0]->value_type() == value_type_id_type::unknown)
+				throw error_type::ambiguous_operation;
 		}
 
 		template <typename target_type>

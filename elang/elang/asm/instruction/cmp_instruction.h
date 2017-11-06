@@ -22,14 +22,13 @@ namespace elang::easm::instruction{
 		}
 
 		virtual void validate_operands() const override{
-			if (operands_.size() != 2u)
+			if (operands_.size() != operand_count_())
 				throw error_type::bad_operand_count;
 
-			if (operands_[0]->value_type() != operands_[1]->value_type())
-				throw error_type::operands_type_mismatch;
+			if (operands_[0]->id() != operand_id_type::register_value)
+				throw error_type::bad_operand;
 
-			if (operands_[0]->value_type() == value_type_id_type::unknown)
-				throw error_type::ambiguous_operation;
+			check_mismatch_();
 		}
 
 		virtual void execute() const override{
@@ -52,9 +51,41 @@ namespace elang::easm::instruction{
 		}
 
 	protected:
+		virtual size_type operand_count_() const{
+			return 2u;
+		}
+
+		virtual void check_mismatch_() const{
+			if (operands_[0]->value_type() != operands_[1]->value_type())
+				throw error_type::operands_type_mismatch;
+
+			if (operands_[0]->value_type() == value_type_id_type::unknown)
+				throw error_type::ambiguous_operation;
+		}
+
 		template <typename target_type>
 		void execute_() const{
-			return elang::vm::machine::cached_registers.compare_target->write(static_cast<__int64>(operands_[0]->read<target_type>() - operands_[1]->read<target_type>()));
+			auto reg = register_target_();
+			if (reg == nullptr)//Use operand
+				target_()->write(static_cast<__int64>(left_()->read<target_type>() - right_()->read<target_type>()));
+			else//Use register
+				reg->write(static_cast<__int64>(left_()->read<target_type>() - right_()->read<target_type>()));
+		}
+
+		virtual operand_ptr_type target_() const{
+			return operands_[0];
+		}
+
+		virtual register_type *register_target_() const{
+			return elang::vm::machine::cached_registers.compare_target;
+		}
+
+		virtual operand_ptr_type left_() const{
+			return operands_[0];
+		}
+
+		virtual operand_ptr_type right_() const{
+			return operands_[1];
 		}
 	};
 }

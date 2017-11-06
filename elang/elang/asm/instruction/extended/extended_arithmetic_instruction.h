@@ -14,7 +14,7 @@ namespace elang::easm::instruction{
 		template <typename... args_types>
 		explicit extended_binary_arithmetic(args_types &&... args)
 			: base_type(std::forward<args_types>(args)...){
-			name_ = ("$" + name_);
+			name_ = ("%" + name_);
 		}
 
 	protected:

@@ -183,7 +183,7 @@ namespace elang::grammar::parser{
 
 	auto const asm_times_instruction_def = (utils::keyword("times") >> x3::uint_ >> (asm_extended_instruction | asm_instruction));
 	auto const asm_instruction_def = (utils::keyword(asm_mnemonic_symbols_) >> -((asm_typed_operand | asm_operand) % ","));
-	auto const asm_extended_instruction_def = (x3::lexeme['$' >> utils::keyword(asm_mnemonic_symbols_)] >> -((asm_typed_operand | asm_operand) % ","));
+	auto const asm_extended_instruction_def = (x3::lexeme['%' >> utils::keyword(asm_mnemonic_symbols_)] >> -((asm_typed_operand | asm_operand) % ","));
 
 	auto const asm_instruction_set_value_def = ((asm_section | asm_label | asm_times_instruction | asm_instruction | asm_type_def) >> x3::omit[(x3::eol | x3::eoi)]);
 	auto const asm_instruction_set_def = *(asm_instruction_set_value);
