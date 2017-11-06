@@ -41,6 +41,8 @@ elang::vm::machine_register_manager elang::vm::machine::register_manager;
 
 elang::vm::machine::memory_manager_type elang::vm::machine::memory_manager;
 
+elang::vm::machine::syscall_register_store_type elang::vm::machine::syscall_register_store;
+
 elang::vm::machine::asm_translation_type elang::vm::machine::asm_translation;
 
 elang::vm::machine::runtime_info_type elang::vm::machine::runtime;

@@ -23,7 +23,10 @@ namespace elang::easm::instruction{
 
 			switch (operands_[0]->id()){
 			case operand_id_type::register_value:
+				break;
 			case operand_id_type::memory:
+				if (operands_[1]->id() != operand_id_type::register_value)
+					throw error_type::bad_operand;//Register required as, at least, one operand
 				break;
 			default:
 				throw error_type::bad_operand;
@@ -32,6 +35,9 @@ namespace elang::easm::instruction{
 
 			if (operands_[0]->value_type() != operands_[1]->value_type())
 				throw error_type::operands_type_mismatch;
+
+			if (operands_[0]->value_type() == value_type_id_type::unknown)
+				throw error_type::ambiguous_operation;
 
 			if (operands_[0]->value_type() == value_type_id_type::unknown)
 				throw error_type::ambiguous_operation;
