@@ -15,6 +15,7 @@ namespace elang::vm{
 		nil,
 		no_start_label,
 		no_instruction,
+		no_register,
 	};
 
 	class machine{
