@@ -154,10 +154,10 @@ namespace elang::grammar::parser{
 	auto const asm_float_value_def = long_double_;
 
 	auto const asm_string_def = ("'" >> x3::lexeme[*(~x3::char_("'"))] >> "'");
-	auto const asm_identifier_def = (!utils::keyword("section") >> elang_identifier);
+	auto const asm_identifier_def = (!x3::no_case[utils::keyword("section")] >> elang_identifier);
 	auto const asm_absolute_identifier_def = (asm_identifier >> +('.' >> asm_identifier));
 
-	auto const asm_section_def = (utils::keyword("section") >> asm_section_symbols_);
+	auto const asm_section_def = x3::no_case[(utils::keyword("section") >> asm_section_symbols_)];
 	auto const asm_label_def = (x3::lexeme[*x3::char_('.') >> asm_identifier >> utils::keyword(":")]);
 
 	auto const asm_expression_def = (asm_expression_operand)[asm_parsed_single] >> *(asm_operator_symbols_ >> asm_expression_operand)[asm_parsed_expression];
@@ -175,15 +175,15 @@ namespace elang::grammar::parser{
 		asm_expression
 	);
 
-	auto const asm_typed_operand_def = (asm_type_symbols_ >> asm_operand);
+	auto const asm_typed_operand_def = (x3::no_case[asm_type_symbols_] >> asm_operand);
 
 	auto const asm_struct_def_value_def = (asm_type_def >> x3::omit[x3::eol]);
-	auto const asm_struct_def_def = (utils::keyword("struct") >> '{' >> x3::omit[x3::eol] >> +asm_struct_def_value >> '}');
+	auto const asm_struct_def_def = (x3::no_case[utils::keyword("struct")] >> '{' >> x3::omit[x3::eol] >> +asm_struct_def_value >> '}');
 	auto const asm_type_def_def = (asm_identifier >> (asm_struct_def | asm_type_symbols_));
 
-	auto const asm_times_instruction_def = (utils::keyword("times") >> x3::uint_ >> (asm_extended_instruction | asm_instruction));
-	auto const asm_instruction_def = (utils::keyword(asm_mnemonic_symbols_) >> -((asm_typed_operand | asm_operand) % ","));
-	auto const asm_extended_instruction_def = (x3::lexeme['%' >> utils::keyword(asm_mnemonic_symbols_)] >> -((asm_typed_operand | asm_operand) % ","));
+	auto const asm_times_instruction_def = (x3::no_case[utils::keyword("times")] >> x3::uint_ >> (asm_extended_instruction | asm_instruction));
+	auto const asm_instruction_def = (utils::keyword(x3::no_case[asm_mnemonic_symbols_]) >> -((asm_typed_operand | asm_operand) % ","));
+	auto const asm_extended_instruction_def = (x3::lexeme['%' >> utils::keyword(x3::no_case[asm_mnemonic_symbols_])] >> -((asm_typed_operand | asm_operand) % ","));
 
 	auto const asm_instruction_set_value_def = ((asm_section | asm_label | asm_times_instruction | asm_instruction | asm_type_def) >> x3::omit[(x3::eol | x3::eoi)]);
 	auto const asm_instruction_set_def = *(asm_instruction_set_value);

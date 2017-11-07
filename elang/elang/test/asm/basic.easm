@@ -2,5 +2,6 @@ section .text
 _start:
 	mov eax, eip
 	lea rdi, [20h]
+	LEA RSI, 0x20
 	mov rax, 0
 	syscall
