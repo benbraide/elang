@@ -33,6 +33,10 @@ elang::vm::machine_register *elang::vm::machine_register_manager::find(std::stri
 	return entry->second.get();
 }
 
+const elang::vm::machine_register_manager::map_type &elang::vm::machine_register_manager::content() const{
+	return map_;
+}
+
 void elang::vm::machine_register_manager::add_(const std::string &name, const std::string &alias, const std::string &_32, const std::string &_16, const std::string &low, const std::string &high){
 	auto value = std::make_shared<basic_machine_register<__int64>>(name);
 

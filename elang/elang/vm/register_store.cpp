@@ -34,3 +34,44 @@ elang::vm::machine_register *elang::vm::syscall_register_store::get(unsigned int
 	auto &list = (float_ ? float_list_ : list_);
 	return ((list.size() <= index) ? nullptr : machine::register_manager.find(list[index]));
 }
+
+elang::vm::machine_register *elang::vm::register_store::get(size_type size){
+	init_();
+	for (auto &entry : map_[size]){
+		if (entry.second){//Unused
+			entry.second = false;
+			return entry.first;
+		}
+	}
+
+	return nullptr;
+}
+
+elang::vm::machine_register *elang::vm::register_store::get_float(){
+	init_();
+	for (auto &entry : float_list_){
+		if (entry.second){//Unused
+			entry.second = false;
+			return entry.first;
+		}
+	}
+
+	return nullptr;
+}
+
+void elang::vm::register_store::put(machine_register &reg){
+	map_[reg.size()][&reg] = true;//Restore
+}
+
+void elang::vm::register_store::init_(){
+	if (external_map_ != nullptr)
+		return;//Already initialized
+
+	external_map_ = &machine::register_manager.content();
+	for (auto &entry : *external_map_){
+		if (entry.second->type_id() == machine_value_type_id::float_)//Float register
+			float_list_[entry.second.get()] = true;
+		else//Integral register
+			map_[entry.second->size()][entry.second.get()] = true;
+	}
+}

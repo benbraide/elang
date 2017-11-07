@@ -147,10 +147,18 @@ namespace elang::grammar::parser{
 		);
 	};
 
-	signed_hex_parser<__int64> const asm_long_long_hex = {};
-	signed_bin_parser<__int64> const asm_long_long_bin = {};
+	hex_parser<__int64> const asm_long_long_hex = {};
+	oct_parser<__int64> const asm_long_long_oct = {};
+	bin_parser<__int64> const asm_long_long_bin = {};
 
-	auto const asm_integral_value_def = (x3::lexeme["0x" >> asm_long_long_hex] | x3::lexeme[asm_long_long_hex >> 'h'] | x3::lexeme[asm_long_long_bin >> 'b'] | x3::long_long);
+	auto const asm_integral_value_def = (
+		x3::lexeme["0x" >> asm_long_long_hex] |
+		x3::lexeme["0" >> asm_long_long_oct] |
+		x3::lexeme[asm_long_long_hex >> 'h'] |
+		x3::lexeme[asm_long_long_bin >> 'b'] |
+		x3::long_long
+	);
+
 	auto const asm_float_value_def = long_double_;
 
 	auto const asm_string_def = ("'" >> x3::lexeme[*(~x3::char_("'"))] >> "'");

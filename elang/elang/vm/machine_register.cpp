@@ -62,6 +62,14 @@ void elang::vm::machine_register::pop_from_stack(){
 	machine::runtime.stack.pop(buffer_, size_);
 }
 
+const std::string &elang::vm::machine_register::name() const{
+	return name_;
+}
+
+elang::vm::machine_register::size_type elang::vm::machine_register::size() const{
+	return size_;
+}
+
 void elang::vm::machine_register::init_(size_type size, char *buffer){
 	size_ = size;
 	buffer_ = buffer;

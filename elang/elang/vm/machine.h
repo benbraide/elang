@@ -7,7 +7,7 @@
 
 #include "runtime.h"
 #include "machine_register_manager.h"
-#include "register_store.h"
+#include "compiler.h"
 #include "asm_translation.h"
 
 namespace elang::vm{
@@ -26,6 +26,7 @@ namespace elang::vm{
 		typedef machine_error error_type;
 
 		typedef elang::vm::syscall_register_store syscall_register_store_type;
+		typedef elang::vm::compiler compiler_type;
 
 		typedef elang::memory::manager memory_manager_type;
 		typedef elang::vm::asm_translation asm_translation_type;
@@ -48,6 +49,7 @@ namespace elang::vm{
 		static memory_manager_type memory_manager;
 
 		static syscall_register_store_type syscall_register_store;
+		static compiler_type compiler;
 
 		static asm_translation_type asm_translation;
 		static runtime_info_type runtime;

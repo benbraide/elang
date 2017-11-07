@@ -23,6 +23,10 @@ namespace elang::grammar{
 	double_parser const double_ = {};
 	long_double_parser const long_double_ = {};
 
+	float_parser const f32_ = {};
+	double_parser const f64_ = {};
+	long_double_parser const f128_ = {};
+
 	struct elang_identifier_ast{
 		char first;
 		std::vector<char> rest;
@@ -151,13 +155,13 @@ namespace elang::grammar{
 	auto const elang_identifier_def = x3::lexeme[x3::char_("$_A-Za-z") >> *x3::char_("$_A-Za-z0-9")];
 
 	template <typename target_type>
-	using signed_hex_parser = x3::uint_parser<target_type, 16>;
+	using hex_parser = x3::uint_parser<target_type, 16>;
 
 	template <typename target_type>
-	using signed_oct_parser = x3::uint_parser<target_type, 8>;
+	using oct_parser = x3::uint_parser<target_type, 8>;
 
 	template <typename target_type>
-	using signed_bin_parser = x3::uint_parser<target_type, 2>;
+	using bin_parser = x3::uint_parser<target_type, 2>;
 
 	BOOST_SPIRIT_DEFINE(elang_identifier);
 }

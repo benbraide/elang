@@ -51,6 +51,8 @@ thread_local elang::vm::machine::cached_register_info elang::vm::machine::cached
 
 elang::vm::machine::memory_manager_type::range_type elang::vm::machine::access_protected{};
 
+elang::vm::machine::compiler_type elang::vm::machine::compiler;
+
 elang::vm::machine::size_type elang::vm::machine::stack_size = (1024 * 1024);//Default size is 1MB
 
 const std::string elang::vm::machine::start_label = "_start";

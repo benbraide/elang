@@ -20,6 +20,8 @@ namespace elang::vm{
 
 		machine_register *find(std::string key) const;
 
+		const map_type &content() const;
+
 	private:
 		void add_(const std::string &name, const std::string &alias, const std::string &_32, const std::string &_16, const std::string &low, const std::string &high);
 

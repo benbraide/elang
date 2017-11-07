@@ -80,6 +80,10 @@ namespace elang::vm{
 
 		void pop_from_stack();
 
+		const std::string &name() const;
+
+		size_type size() const;
+
 		friend output_writer_type &operator <<(output_writer_type &writer, machine_register &reg){
 			return (writer << reg.name_);
 		}
