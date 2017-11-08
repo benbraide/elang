@@ -31,6 +31,7 @@
 #include "../../asm/instruction/times_instruction.h"
 #include "../../asm/instruction/decl_instruction.h"
 
+#include "../../asm/instruction/extended/extended_mov_instruction.h"
 #include "../../asm/instruction/extended/extended_arithmetic_instruction.h"
 #include "../../asm/instruction/extended/extended_cmp_instruction.h"
 #include "../../asm/instruction/extended/extended_syscall_instruction.h"
@@ -201,6 +202,8 @@ struct asm_traverser{
 		asm_traverser::operands(ast.second, operands);
 
 		switch (ast.first){
+		case elang::easm::instruction::id::mov:
+			return std::make_shared<elang::easm::instruction::extended_mov>(std::move(operands));
 		case elang::easm::instruction::id::add:
 			return std::make_shared<elang::easm::instruction::ex_add>(std::move(operands));
 		case elang::easm::instruction::id::sub:

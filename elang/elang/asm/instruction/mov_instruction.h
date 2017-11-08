@@ -38,9 +38,6 @@ namespace elang::easm::instruction{
 
 			if (operands_[0]->value_type() == value_type_id_type::unknown)
 				throw error_type::ambiguous_operation;
-
-			if (operands_[0]->value_type() == value_type_id_type::unknown)
-				throw error_type::ambiguous_operation;
 		}
 
 		virtual void execute() const override{
