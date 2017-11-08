@@ -4,6 +4,7 @@
 #define ELANG_CONSTANT_VALUE_AST_H
 
 #include "../../common/constant_value.h"
+#include "../../vm/machine.h"
 
 #include "asm_ast.h"
 
@@ -12,27 +13,52 @@ ELANG_AST_BEGIN
 ELANG_AST_DECLARE_SINGLE(constant_value, elang::common::constant_value)
 
 struct constant_value_traverser{
-	instruction_operand_ptr_type operator()(const constant_value &ast) const{
+	void operator()(const constant_value &ast) const{
+		std::string label;
+		unsigned int size;
+
 		switch (ast.value){
 		case elang::common::constant_value::false_:
-			return std::make_shared<elang::easm::instruction::label_operand>("#false", std::vector<std::string>{});
+			label = "__false__";
+			size = 1u;
+			break;
 		case elang::common::constant_value::true_:
-			return std::make_shared<elang::easm::instruction::label_operand>("#true", std::vector<std::string>{});
+			label = "__true__";
+			size = 1u;
+			break;
 		case elang::common::constant_value::indeterminate:
-			return std::make_shared<elang::easm::instruction::label_operand>("#ind", std::vector<std::string>{});
+			label = "__ind__";
+			size = 1u;
+			break;
 		case elang::common::constant_value::nullptr_:
-			return std::make_shared<elang::easm::instruction::label_operand>("#null", std::vector<std::string>{});
+			label = "__null__";
+			size = 8u;
+			break;
 		case elang::common::constant_value::nan_:
-			return std::make_shared<elang::easm::instruction::label_operand>("#nan", std::vector<std::string>{});
-		case elang::common::constant_value::undefined_:
-			return std::make_shared<elang::easm::instruction::label_operand>("#und", std::vector<std::string>{});
+			label = "__nan__";
+			size = 8u;
+			break;
 		case elang::common::constant_value::infinite_:
-			return std::make_shared<elang::easm::instruction::label_operand>("#inf", std::vector<std::string>{});
+			label = "__inf__";
+			size = 8u;
+			break;
 		default:
+			throw elang::easm::instruction_error::bad_instruction;
 			break;
 		}
 
-		throw elang::easm::instruction_error::bad_instruction;
+		auto reg = elang::vm::machine::compiler.store().get(size);
+		if (reg == nullptr)//Error
+			throw elang::vm::machine_error::no_register;
+
+		auto reg_op = std::make_shared<elang::easm::instruction::register_operand>(&reg);
+		auto label_op = std::make_shared<elang::easm::instruction::label_operand>(label);
+
+		auto mem_op = std::make_shared<elang::easm::instruction::memory_operand>(elang::vm::machine_value_type_id::unknown, label_op);
+		auto instruction = std::make_shared<elang::easm::instruction::mov>(reg_op, mem_op);
+
+		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
+		elang::vm::machine::compiler.push_register(*reg);
 	}
 };
 

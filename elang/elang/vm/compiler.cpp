@@ -1,12 +1,25 @@
 #include "machine.h"
 #include "compiler.h"
 
-elang::vm::compiler::compiler(){
-	register_list_.reserve(4u);
+elang::vm::compiler::compiler()
+	: register_list_(4), expression_type_(machine_value_type_id::unknown){
+	section_map_[section_id_type::meta] = std::make_shared<section_type>(section_id_type::meta);
+	section_map_[section_id_type::rodata] = std::make_shared<section_type>(section_id_type::rodata);
+	section_map_[section_id_type::data] = std::make_shared<section_type>(section_id_type::data);
+	section_map_[section_id_type::type] = std::make_shared<section_type>(section_id_type::type);
+	section_map_[section_id_type::text] = std::make_shared<section_type>(section_id_type::text);
 }
 
 elang::vm::register_store &elang::vm::compiler::store(){
 	return store_;
+}
+
+elang::vm::compiler::section_type &elang::vm::compiler::section(section_id_type id){
+	auto entry = section_map_.find(id);
+	if (entry != section_map_.end())
+		return *entry->second;
+
+	throw error_type::no_section;
 }
 
 void elang::vm::compiler::push_register(machine_register &reg){
@@ -35,4 +48,18 @@ elang::vm::machine_register *elang::vm::compiler::pop_register(){
 	}
 
 	return reg;
+}
+
+void elang::vm::compiler::reset_expression_type(){
+	expression_type_ = machine_value_type_id::unknown;
+}
+
+void elang::vm::compiler::set_expression_type(machine_value_type_id left, machine_value_type_id right){
+	auto type = ((left < right) ? right : left);
+	if (expression_type_ == machine_value_type_id::unknown || expression_type_ < type)
+		expression_type_ = type;
+}
+
+elang::vm::machine_value_type_id elang::vm::compiler::get_expression_type() const{
+	return expression_type_;
 }
