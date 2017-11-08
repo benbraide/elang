@@ -102,7 +102,7 @@ namespace elang::grammar{
 				return static_cast<char_type>('\0');
 
 			auto start = data++;//Advance past digit
-			if (data != end && isdigit(*data))
+			if (data != end && (*data >= '0' && *data <= '7'))
 				++data;//Double digits
 
 			return static_cast<char_type>(std::stoi(std::string(start, data), nullptr, 8));
@@ -117,7 +117,7 @@ namespace elang::grammar{
 			digits.reserve(5);
 			digits.append(1u, static_cast<char_type>(*(data++)));
 
-			for (auto i = 0; i < 3 && data != end && isdigit(*data); ++i)
+			for (auto i = 0; i < 3 && data != end && (*data >= static_cast<char_type>('0') && *data <= static_cast<char_type>('7')); ++i)
 				digits.append(1u, static_cast<char_type>(*(data++)));
 
 			return static_cast<char_type>(std::stoi(digits), nullptr, 8);
@@ -144,7 +144,7 @@ namespace elang::grammar{
 			digits.reserve(5);
 			digits.append(1u, static_cast<char_type>(*(data++)));
 
-			for (auto i = 0; i < 3 && data != end && isxdigit(*data); ++i)
+			for (auto i = 0; i < 3 && data != end && iswxdigit(*data); ++i)
 				digits.append(1u, static_cast<char_type>(*(data++)));
 
 			return static_cast<char_type>(std::stoi(digits), nullptr, 16);

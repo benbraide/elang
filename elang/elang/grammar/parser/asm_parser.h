@@ -174,14 +174,8 @@ namespace elang::grammar::parser{
 	auto const asm_memory_def = ('[' >> asm_expression >> ']');
 	auto const asm_sized_memory_def = (asm_memory >> (asm_absolute_identifier | asm_identifier));
 
-	auto const asm_expression_operand_def = (asm_grouped_expression | asm_float_value | asm_integral_value | asm_absolute_identifier | asm_identifier);
-
-	auto const asm_operand_def = (
-		asm_sized_memory |
-		asm_memory |
-		asm_string |
-		asm_expression
-	);
+	auto const asm_expression_operand_def = (asm_grouped_expression | asm_string | asm_float_value | asm_integral_value | asm_absolute_identifier | asm_identifier);
+	auto const asm_operand_def = (asm_sized_memory | asm_memory | asm_expression);
 
 	auto const asm_typed_operand_def = (x3::no_case[asm_type_symbols_] >> asm_operand);
 

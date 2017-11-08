@@ -67,8 +67,8 @@ using asm_sized_memory_variant = boost::variant<asm_identifier, asm_absolute_ide
 ELANG_AST_DECLARE_SINGLE_WPOS(asm_memory, asm_expression)
 ELANG_AST_DECLARE_PAIR(asm_sized_memory, asm_memory, asm_sized_memory_variant)
 
-ELANG_AST_DECLARE_SINGLE_VARIANT(asm_expression_operand, asm_integral_value, asm_float_value, asm_identifier, asm_absolute_identifier, asm_grouped_expression)
-ELANG_AST_DECLARE_SINGLE_VARIANT(asm_operand, asm_string, asm_expression, asm_memory, asm_sized_memory)
+ELANG_AST_DECLARE_SINGLE_VARIANT(asm_expression_operand, asm_integral_value, asm_float_value, asm_string, asm_identifier, asm_absolute_identifier, asm_grouped_expression)
+ELANG_AST_DECLARE_SINGLE_VARIANT(asm_operand, asm_expression, asm_memory, asm_sized_memory)
 ELANG_AST_DECLARE_PAIR_WPOS(asm_typed_operand, elang::vm::machine_value_type_id, asm_operand)
 
 using asm_instruction_variant = boost::variant<asm_operand, asm_typed_operand>;
@@ -295,7 +295,9 @@ struct asm_traverser{
 	}
 
 	instruction_operand_ptr_type operator()(const asm_string &ast) const{
-		return std::make_shared<elang::easm::instruction::string_value_operand>(elang::vm::machine_value_type_id::unknown, std::string(ast.value.data(), ast.value.size()));
+		std::string original(ast.value.data(), ast.value.size()), value;
+		utils::escape_string(ast.value.data(), (ast.value.data() + ast.value.size()), value);
+		return std::make_shared<elang::easm::instruction::string_value_operand>(elang::vm::machine_value_type_id::unknown, std::move(original), std::move(value));
 	}
 
 	instruction_operand_ptr_type operator()(const asm_expression &ast) const{
