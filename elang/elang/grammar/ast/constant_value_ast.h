@@ -14,6 +14,8 @@ ELANG_AST_DECLARE_SINGLE(constant_value, elang::common::constant_value)
 
 struct constant_value_traverser{
 	void operator()(const constant_value &ast) const{
+		using instruction_operand_ptr_type = elang::easm::instruction::operand_base::ptr_type;
+
 		std::string label;
 		unsigned int size;
 
@@ -51,11 +53,11 @@ struct constant_value_traverser{
 		if (reg == nullptr)//Error
 			throw elang::vm::machine_error::no_register;
 
-		auto reg_op = std::make_shared<elang::easm::instruction::register_operand>(&reg);
-		auto label_op = std::make_shared<elang::easm::instruction::label_operand>(label);
+		auto reg_op = std::make_shared<elang::easm::instruction::register_operand>(*reg);
+		auto label_op = std::make_shared<elang::easm::instruction::label_operand>(label, std::vector<std::string>());
 
 		auto mem_op = std::make_shared<elang::easm::instruction::memory_operand>(elang::vm::machine_value_type_id::unknown, label_op);
-		auto instruction = std::make_shared<elang::easm::instruction::mov>(reg_op, mem_op);
+		auto instruction = std::make_shared<elang::easm::instruction::mov>(std::vector<instruction_operand_ptr_type>({ reg_op, mem_op }));
 
 		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
 		elang::vm::machine::compiler.push_register(*reg);

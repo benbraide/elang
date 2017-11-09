@@ -2,7 +2,7 @@
 #include "compiler.h"
 
 elang::vm::compiler::compiler()
-	: register_list_(4), expression_type_(machine_value_type_id::unknown){
+	: register_list_(4), expression_type_(machine_value_type_id::unknown), label_count_(0){
 	section_map_[section_id_type::meta] = std::make_shared<section_type>(section_id_type::meta);
 	section_map_[section_id_type::rodata] = std::make_shared<section_type>(section_id_type::rodata);
 	section_map_[section_id_type::data] = std::make_shared<section_type>(section_id_type::data);
@@ -62,4 +62,8 @@ void elang::vm::compiler::set_expression_type(machine_value_type_id left, machin
 
 elang::vm::machine_value_type_id elang::vm::compiler::get_expression_type() const{
 	return expression_type_;
+}
+
+unsigned int elang::vm::compiler::label_count(){
+	return label_count_++;
 }

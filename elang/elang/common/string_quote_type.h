@@ -9,6 +9,10 @@ namespace elang::common{
 		escaped_narrow,
 		wide,
 		escaped_wide,
+		narrow_char,
+		escaped_narrow_char,
+		wide_char,
+		escaped_wide_char,
 	};
 }
 

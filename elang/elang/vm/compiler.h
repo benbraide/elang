@@ -35,11 +35,14 @@ namespace elang::vm{
 
 		machine_value_type_id get_expression_type() const;
 
+		unsigned int label_count();
+
 	private:
 		register_store store_;
 		section_map_type section_map_;
 		register_list_type register_list_;
 		machine_value_type_id expression_type_;
+		unsigned int label_count_;
 	};
 }
 

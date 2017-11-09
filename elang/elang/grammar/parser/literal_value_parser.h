@@ -5,6 +5,21 @@
 
 #include "../ast/literal_value_ast.h"
 
+#define ELANG_PARSER_STRING_NAME(n) ELANG_AST_JOIN(n, _string_literal)
+#define ELANG_PARSER_ESC_STRING_NAME(n) ELANG_AST_JOIN(escaped_, ELANG_PARSER_STRING_NAME(n))
+
+#define ELANG_PARSER_STRING_DEF_NAME(n) ELANG_AST_JOIN(ELANG_PARSER_STRING_NAME(n), _def)
+#define ELANG_PARSER_ESC_STRING_DEF_NAME(n) ELANG_AST_JOIN(ELANG_PARSER_ESC_STRING_NAME(n), _def)
+
+#define ELANG_PARSER_DEFINE_STRING(n, q)\
+x3::rule<class ELANG_PARSER_STRING_NAME(n), ast::string_literal> const ELANG_PARSER_STRING_NAME(n) = #n "_string_literal";\
+x3::rule<class ELANG_PARSER_ESC_STRING_NAME(n), ast::string_literal> const ELANG_PARSER_ESC_STRING_NAME(n) = "escaped_" #n "_string_literal";\
+\
+auto const ELANG_PARSER_STRING_DEF_NAME(n) = ("@" q >> x3::attr(elang::common::string_quote_type::n) >> x3::lexeme[*(~x3::char_(q))] >> q);\
+auto const ELANG_PARSER_ESC_STRING_DEF_NAME(n) = (q >> x3::attr(elang::common::string_quote_type::ELANG_AST_JOIN(escaped_, n)) >> x3::lexeme[*((x3::char_('\\') >> q) | ~x3::char_(q))] >> q);\
+\
+BOOST_SPIRIT_DEFINE(ELANG_PARSER_STRING_NAME(n), ELANG_PARSER_ESC_STRING_NAME(n))
+
 namespace elang::grammar::parser{
 	namespace x3 = boost::spirit::x3;
 
@@ -42,6 +57,17 @@ namespace elang::grammar::parser{
 
 	auto const integral_literal_def = x3::lexeme[(("0x" >> long_long_hex) | ("0b" >> long_long_bin) | ("0" >> long_long_oct) | x3::long_long) >> -integral_literal_symbols_];
 	auto const real_literal_def = x3::lexeme[(long_double_ >> -real_literal_symbols_)];
+
+	ELANG_PARSER_DEFINE_STRING(narrow, "\"");
+	ELANG_PARSER_DEFINE_STRING(wide, "L\"");
+
+	ELANG_PARSER_DEFINE_STRING(narrow_char, "\'");
+	ELANG_PARSER_DEFINE_STRING(wide_char, "L\'");
+
+	BOOST_SPIRIT_DEFINE(
+		integral_literal,
+		real_literal
+	)
 }
 
 #endif /* !ELANG_LITERAL_VALUE_PARSER_H */
