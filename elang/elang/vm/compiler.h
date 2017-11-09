@@ -11,6 +11,9 @@ namespace elang::vm{
 	enum class compiler_error{
 		nil,
 		bad_char,
+		number_too_small,
+		number_too_big,
+		unreachable,
 	};
 
 	enum class compiler_warning{
