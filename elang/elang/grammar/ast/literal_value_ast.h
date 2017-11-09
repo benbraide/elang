@@ -53,7 +53,7 @@ struct literal_value_traverser{
 		using instruction_operand_ptr_type = elang::easm::instruction::operand_base::ptr_type;
 		using instruction_ptr_type = elang::easm::instruction::base::ptr_type;
 
-		auto reg = elang::vm::machine::compiler.store().get(8u);
+		auto reg = elang::vm::machine::compiler.store().get(elang::vm::machine_value_type_id::qword);
 		if (reg == nullptr)//Error
 			throw elang::vm::machine_error::no_register;
 
@@ -87,7 +87,6 @@ struct literal_value_traverser{
 		instruction = std::make_shared<elang::easm::instruction::mov>(std::vector<instruction_operand_ptr_type>({ reg_op, label_op }));
 
 		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
-		elang::vm::machine::compiler.push_register(*reg);
 	}
 };
 

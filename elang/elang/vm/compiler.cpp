@@ -67,3 +67,11 @@ elang::vm::machine_value_type_id elang::vm::compiler::get_expression_type() cons
 unsigned int elang::vm::compiler::label_count(){
 	return label_count_++;
 }
+
+void elang::vm::compiler::reset_warnings(){
+	//#TODO: Implement
+}
+
+void elang::vm::compiler::add_warning(compiler_warning value){
+	//#TODO: Implement
+}

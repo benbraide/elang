@@ -17,32 +17,32 @@ struct constant_value_traverser{
 		using instruction_operand_ptr_type = elang::easm::instruction::operand_base::ptr_type;
 
 		std::string label;
-		unsigned int size;
+		elang::vm::machine_value_type_id size;
 
 		switch (ast.value){
 		case elang::common::constant_value::false_:
 			label = "__false__";
-			size = 1u;
+			size = elang::vm::machine_value_type_id::byte;
 			break;
 		case elang::common::constant_value::true_:
 			label = "__true__";
-			size = 1u;
+			size = elang::vm::machine_value_type_id::byte;
 			break;
 		case elang::common::constant_value::indeterminate:
 			label = "__ind__";
-			size = 1u;
+			size = elang::vm::machine_value_type_id::byte;
 			break;
 		case elang::common::constant_value::nullptr_:
 			label = "__null__";
-			size = 8u;
+			size = elang::vm::machine_value_type_id::qword;
 			break;
 		case elang::common::constant_value::nan_:
 			label = "__nan__";
-			size = 8u;
+			size = elang::vm::machine_value_type_id::qword;
 			break;
 		case elang::common::constant_value::infinite_:
 			label = "__inf__";
-			size = 8u;
+			size = elang::vm::machine_value_type_id::qword;
 			break;
 		default:
 			throw elang::easm::instruction_error::bad_instruction;
@@ -60,7 +60,6 @@ struct constant_value_traverser{
 		auto instruction = std::make_shared<elang::easm::instruction::mov>(std::vector<instruction_operand_ptr_type>({ reg_op, mem_op }));
 
 		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
-		elang::vm::machine::compiler.push_register(*reg);
 	}
 };
 

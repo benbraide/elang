@@ -13,6 +13,11 @@ namespace elang::vm{
 		bad_char,
 	};
 
+	enum class compiler_warning{
+		nil,
+		type_coercion
+	};
+
 	class compiler{
 	public:
 		typedef elang::easm::section_id section_id_type;
@@ -41,6 +46,10 @@ namespace elang::vm{
 		machine_value_type_id get_expression_type() const;
 
 		unsigned int label_count();
+
+		void reset_warnings();
+
+		void add_warning(compiler_warning value);
 
 	private:
 		register_store store_;

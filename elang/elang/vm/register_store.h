@@ -24,24 +24,34 @@ namespace elang::vm{
 
 	class register_store{
 	public:
-		typedef std::size_t size_type;
-		typedef machine_register_manager::map_type external_map_type;
+		typedef machine_value_type_id value_type_id_type;
 
-		typedef std::unordered_map<machine_register *, bool> list_type;
-		typedef std::unordered_map<size_type, list_type> map_type;
+		struct info_type{
+			machine_register *qword;
+			machine_register *dword;
+			machine_register *word;
+			machine_register *byte;
+		};
 
-		machine_register *get(size_type size);
+		typedef std::vector<info_type> cache_list_type;
+		typedef std::vector<info_type *> info_list_type;
+		typedef std::vector<machine_register *> raw_info_list_type;
 
-		machine_register *get_float();
+		machine_register *get(value_type_id_type value_type);
 
-		void put(machine_register &reg);
+		machine_register *get_used(value_type_id_type value_type);
 
 	private:
 		void init_();
 
-		map_type map_;
-		list_type float_list_;
-		const external_map_type *external_map_ = nullptr;
+		machine_register *get_(value_type_id_type value_type);
+
+		cache_list_type cache_;
+		info_list_type available_list_;
+		raw_info_list_type available_float_list_;
+		raw_info_list_type used_list_;
+		info_list_type integral_used_list_;
+		bool initialized_ = false;
 	};
 }
 
