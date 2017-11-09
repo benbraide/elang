@@ -22,19 +22,6 @@ ELANG_AST_DECLARE_PAIR(string_literal, elang::common::string_quote_type, std::ve
 ELANG_AST_DECLARE_SINGLE_VARIANT(literal_value, numeric_literal, string_literal)
 
 struct literal_value_traverser{
-	static void to_wide_string(const std::string &value, std::string &out, bool escaped){
-		std::wstring wvalue;
-		if (!escaped){//Interpret as narrow characters
-			wvalue.reserve(value.size() + 1);
-			for (auto c : value)//Convert to wide string
-				wvalue.append(1, static_cast<wchar_t>(c));
-		}
-		else//Escape string
-			utils::escape_string(value.data(), (value.data() + value.size()), wvalue);
-
-		out.assign(reinterpret_cast<const char *>(wvalue.data()), wvalue.size() * 2);
-	}
-
 	static bool is_escaped(elang::common::string_quote_type value){
 		return (
 			value == elang::common::string_quote_type::escaped_narrow ||
@@ -53,6 +40,15 @@ struct literal_value_traverser{
 			);
 	}
 
+	static bool is_char(elang::common::string_quote_type value){
+		return (
+			value == elang::common::string_quote_type::narrow_char ||
+			value == elang::common::string_quote_type::wide_char ||
+			value == elang::common::string_quote_type::escaped_narrow_char ||
+			value == elang::common::string_quote_type::escaped_wide_char
+			);
+	}
+
 	void operator()(const string_literal &ast) const{
 		using instruction_operand_ptr_type = elang::easm::instruction::operand_base::ptr_type;
 		using instruction_ptr_type = elang::easm::instruction::base::ptr_type;
@@ -61,18 +57,23 @@ struct literal_value_traverser{
 		if (reg == nullptr)//Error
 			throw elang::vm::machine_error::no_register;
 
-		std::string original(ast.second.data(), ast.second.size()), value;
-		if (is_wide(ast.first))//Convert to wide string
-			to_wide_string(original, value, is_escaped(ast.first));
-		else if (is_escaped(ast.first))//Escape string
-			utils::escape_string(ast.second.data(), (ast.second.data() + ast.second.size()), value);
-		else//Non-escaped
-			value = original;
+		std::string value(ast.second.data(), ast.second.size());
+		if (!is_escaped(ast.first))
+			elang::common::utils::disable_string_escape(value);
+
+		if (is_char(ast.first)){
+			std::string escaped_value;
+			elang::common::utils::escape_string(value.begin(), value.end(), escaped_value);
+			if (escaped_value.size() != 1u)
+				throw elang::vm::compiler_error::bad_char;
+		}
+		else//Append null character
+			value.append("\\0");
 
 		instruction_ptr_type instruction;
 		auto label = ("__LC" + std::to_string(elang::vm::machine::compiler.label_count()) + "__");
 
-		auto str_op = std::make_shared<elang::easm::instruction::string_value_operand>(std::move(original), std::move(value));
+		auto str_op = std::make_shared<elang::easm::instruction::string_value_operand>(std::move(value));
 		if (is_wide(ast.first))
 			instruction = std::make_shared<elang::easm::instruction::dw>(std::vector<instruction_operand_ptr_type>({ str_op }));
 		else//Byte

@@ -8,6 +8,11 @@
 #include "register_store.h"
 
 namespace elang::vm{
+	enum class compiler_error{
+		nil,
+		bad_char,
+	};
+
 	class compiler{
 	public:
 		typedef elang::easm::section_id section_id_type;

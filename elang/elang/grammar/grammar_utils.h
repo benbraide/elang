@@ -3,6 +3,8 @@
 #ifndef ELANG_GRAMMAR_UTILS_H
 #define ELANG_GRAMMAR_UTILS_H
 
+#include "../common/common_utils.h"
+
 #include "ast/ast.h"
 
 namespace elang::grammar{
@@ -47,107 +49,6 @@ namespace elang::grammar{
 			value.reserve(ast.rest.size() + 2);
 			value.append(1, ast.first);
 			value.append(ast.rest.data(), ast.rest.size());
-		}
-
-		static void escape_string(const char *data, const char *end, std::string &out){
-			out.reserve(end - data + 1);//Reserve maximum possible size
-			for (; data != end; ++data)
-				out.append(1u, escaped_char<char>(data, end));
-		}
-
-		static void escape_string(const char *data, const char *end, std::wstring &out){
-			out.reserve(end - data + 1);//Reserve maximum possible size
-			for (; data != end; ++data)
-				out.append(1u, escaped_char<wchar_t>(data, end));
-		}
-
-		template <typename char_type>
-		static char_type escaped_char(const char *&data, const char *end){
-			auto c = *(data++);
-			switch (c){
-			case 'a':
-				return static_cast<char_type>('\a');
-			case 'b':
-				return static_cast<char_type>('\b');
-			case 'f':
-				return static_cast<char_type>('\f');
-			case 'n':
-				return static_cast<char_type>('\n');
-			case 'r':
-				return static_cast<char_type>('\r');
-			case 't':
-				return static_cast<char_type>('\t');
-			case 'v':
-				return static_cast<char_type>('\v');
-			case '"':
-				return static_cast<char_type>('\"');
-			case '\'':
-				return static_cast<char_type>('\'');
-			case '\\':
-				return static_cast<char_type>('\\');
-			case '0':
-				return escaped_oct_char<char_type>(data, end, std::bool_constant<std::is_same<char_type, char>::value>());
-			case 'x':
-				return escaped_hex_char<char_type>(data, end, std::bool_constant<std::is_same<char_type, char>::value>());
-			default:
-				break;
-			}
-
-			return static_cast<char_type>(c);
-		}
-
-		template <typename char_type>
-		static char_type escaped_oct_char(const char *&data, const char *end, std::true_type){//Narrow
-			if (data == end || !isdigit(*data))
-				return static_cast<char_type>('\0');
-
-			auto start = data++;//Advance past digit
-			if (data != end && (*data >= '0' && *data <= '7'))
-				++data;//Double digits
-
-			return static_cast<char_type>(std::stoi(std::string(start, data), nullptr, 8));
-		}
-
-		template <typename char_type>
-		static char_type escaped_oct_char(const char *&data, const char *end, std::false_type){//Wide
-			if (data == end || !isdigit(*data))
-				return static_cast<char_type>('\0');
-
-			std::wstring digits;
-			digits.reserve(5);
-			digits.append(1u, static_cast<char_type>(*(data++)));
-
-			for (auto i = 0; i < 3 && data != end && (*data >= static_cast<char_type>('0') && *data <= static_cast<char_type>('7')); ++i)
-				digits.append(1u, static_cast<char_type>(*(data++)));
-
-			return static_cast<char_type>(std::stoi(digits), nullptr, 8);
-		}
-
-		template <typename char_type>
-		static char_type escaped_hex_char(const char *&data, const char *end, std::true_type){//Narrow
-			if (data == end || !isxdigit(*data))
-				return static_cast<char_type>('\0');
-
-			auto start = data++;//Advance past digit
-			if (data != end && isxdigit(*data))
-				++data;//Double digits
-
-			return static_cast<char_type>(std::stoi(std::string(start, data), nullptr, 16));
-		}
-
-		template <typename char_type>
-		static char_type escaped_hex_char(const char *&data, const char *end, std::false_type){//Wide
-			if (data == end || !isxdigit(*data))
-				return static_cast<char_type>('\0');
-
-			std::wstring digits;
-			digits.reserve(5);
-			digits.append(1u, static_cast<char_type>(*(data++)));
-
-			for (auto i = 0; i < 3 && data != end && iswxdigit(*data); ++i)
-				digits.append(1u, static_cast<char_type>(*(data++)));
-
-			return static_cast<char_type>(std::stoi(digits), nullptr, 16);
 		}
 	};
 

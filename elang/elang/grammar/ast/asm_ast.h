@@ -295,9 +295,8 @@ struct asm_traverser{
 	}
 
 	instruction_operand_ptr_type operator()(const asm_string &ast) const{
-		std::string original(ast.value.data(), ast.value.size()), value;
-		utils::escape_string(ast.value.data(), (ast.value.data() + ast.value.size()), value);
-		return std::make_shared<elang::easm::instruction::string_value_operand>(elang::vm::machine_value_type_id::unknown, std::move(original), std::move(value));
+		std::string value(ast.value.data(), ast.value.size());
+		return std::make_shared<elang::easm::instruction::string_value_operand>(std::move(value));
 	}
 
 	instruction_operand_ptr_type operator()(const asm_expression &ast) const{
