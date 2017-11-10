@@ -6,6 +6,7 @@
 #include "../asm/instruction_section.h"
 
 #include "register_store.h"
+#include "symbols_table.h"
 
 namespace elang::vm{
 	enum class compiler_error{
@@ -13,12 +14,22 @@ namespace elang::vm{
 		bad_char,
 		number_too_small,
 		number_too_big,
+		ambiguous_function,
+		redefinition,
+		multiple_base,
+		undefined,
+		undefined_type,
+		unique_return_type,
 		unreachable,
 	};
 
 	enum class compiler_warning{
 		nil,
 		type_coercion
+	};
+
+	enum class label_type{
+		constant,
 	};
 
 	class compiler{
@@ -31,6 +42,10 @@ namespace elang::vm{
 
 		typedef std::vector<machine_register *> register_list_type;
 		typedef std::unordered_map<section_id_type, section_ptr_type> section_map_type;
+
+		struct info_type{
+			const symbol_entry *symbol_mangling;
+		};
 
 		compiler();
 
@@ -48,11 +63,13 @@ namespace elang::vm{
 
 		machine_value_type_id get_expression_type() const;
 
-		unsigned int label_count();
+		std::string generate_label(label_type type);
 
 		void reset_warnings();
 
 		void add_warning(compiler_warning value);
+
+		info_type &info();
 
 	private:
 		register_store store_;
@@ -60,6 +77,7 @@ namespace elang::vm{
 		register_list_type register_list_;
 		machine_value_type_id expression_type_;
 		unsigned int label_count_;
+		info_type info_{};
 	};
 }
 

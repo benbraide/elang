@@ -179,7 +179,7 @@ struct literal_value_traverser{
 		value.append("\\0");
 		instruction_ptr_type instruction;
 
-		auto label = ("__LC" + std::to_string(elang::vm::machine::compiler.label_count()) + "__");
+		auto label = elang::vm::machine::compiler.generate_label(elang::vm::label_type::constant);
 		auto str_op = std::make_shared<elang::easm::instruction::string_value_operand>(std::move(value));
 
 		if (is_wide(ast.first))

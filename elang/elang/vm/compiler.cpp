@@ -64,8 +64,15 @@ elang::vm::machine_value_type_id elang::vm::compiler::get_expression_type() cons
 	return expression_type_;
 }
 
-unsigned int elang::vm::compiler::label_count(){
-	return label_count_++;
+std::string elang::vm::compiler::generate_label(label_type type){
+	switch (type){
+	case label_type::constant:
+		return ("__LC" + std::to_string(label_count_++) + "__");
+	default:
+		break;
+	}
+
+	throw compiler_error::unreachable;
 }
 
 void elang::vm::compiler::reset_warnings(){
@@ -74,4 +81,8 @@ void elang::vm::compiler::reset_warnings(){
 
 void elang::vm::compiler::add_warning(compiler_warning value){
 	//#TODO: Implement
+}
+
+elang::vm::compiler::info_type &elang::vm::compiler::info(){
+	return info_;
 }

@@ -14,27 +14,19 @@
 #include "machine_value_type_id.h"
 
 namespace elang::vm{
-	enum class type_info_error{
-		nil,
-		unreachable,
-		not_applicable,
-		redefinition,
-		unique_return_type_only,
-	};
+	class symbol_entry;
 
-	class type_info{
+	class type_info : public std::enable_shared_from_this<type_info>{
 	public:
-		typedef type_info_error error_type;
-
 		typedef std::size_t size_type;
 		typedef std::shared_ptr<type_info> ptr_type;
+		typedef std::shared_ptr<symbol_entry> symbol_ptr_type;
 
 		enum class attribute_type : unsigned int{
 			nil					= (0 << 0x0000),
-			static_				= (1 << 0x0000),
-			tls					= (1 << 0x0001),
-			private_			= (1 << 0x0002),
-			protected_			= (1 << 0x0003),
+			const_				= (1 << 0x0000),
+			ref_				= (1 << 0x0001),
+			vref				= (1 << 0x0002),
 		};
 
 		struct entry_type{
@@ -42,21 +34,29 @@ namespace elang::vm{
 			attribute_type attributes;
 		};
 
+		explicit type_info(attribute_type attributes);
+
+		virtual ptr_type reflect();
+
 		virtual machine_value_type_id id() const;
+
+		virtual attribute_type attributes() const;
 
 		virtual size_type size() const = 0;
 
 		virtual type_info *underlying_type() const;
 
-		virtual entry_type *find(const std::string &key) const;
+		virtual std::string mangle() const = 0;
+
+		virtual std::string mangle_attributes() const;
 
 		virtual bool is_same(const type_info &type) const = 0;
 
+		virtual bool is_same_object(const type_info &type) const;
+
 		virtual bool is_compatible(const type_info &type) const;
 
-		virtual bool is_primitive() const;
-
-		virtual bool is_integral() const;
+		virtual bool is_null_pointer() const;
 
 		virtual bool is_pointer() const;
 
@@ -68,52 +68,59 @@ namespace elang::vm{
 
 		virtual bool is_bool() const;
 
-		virtual bool is_storage() const;
+		virtual bool is_numeric() const;
+
+		virtual bool is_integral() const;
+
+		virtual bool is_const() const;
 
 		virtual bool is_ref() const;
 
 		virtual bool is_vref() const;
+
+	protected:
+		virtual bool is_same_(const type_info &type) const;
+
+		attribute_type attributes_;
 	};
 
-	class primitive_type_info : public type_info{
+	class basic_type_info : public type_info{
 	public:
-		enum class index_type{
-			int8_,
-			uint8_,
-			int16_,
-			uint16_,
-			int32_,
-			uint32_,
-			int64_,
-			uint64_,
-			float_,
-		};
-
-		explicit primitive_type_info(index_type index);
+		basic_type_info(symbol_ptr_type value, attribute_type attributes);
 
 		virtual machine_value_type_id id() const override;
 
 		virtual size_type size() const override;
 
+		virtual std::string mangle() const override;
+
 		virtual bool is_same(const type_info &type) const override;
 
 		virtual bool is_compatible(const type_info &type) const override;
 
-		virtual bool is_primitive() const override;
+		virtual bool is_null_pointer() const;
+
+		virtual bool is_void() const;
+
+		virtual bool is_bool() const;
+
+		virtual bool is_numeric() const override;
 
 		virtual bool is_integral() const override;
 
 	private:
-		index_type index_;
+		symbol_ptr_type value_;
 	};
 
 	class pointer_type_info : public type_info{
 	public:
-		explicit pointer_type_info(ptr_type value);
+		pointer_type_info(ptr_type value, attribute_type attributes);
 
 		virtual size_type size() const override;
 
 		virtual type_info *underlying_type() const override;
+
+		virtual std::string mangle() const override;
 
 		virtual bool is_same(const type_info &type) const override;
 
@@ -127,11 +134,13 @@ namespace elang::vm{
 
 	class array_type_info : public type_info{
 	public:
-		array_type_info(ptr_type value, size_type count);
+		array_type_info(ptr_type value, size_type count, attribute_type attributes);
 
 		virtual size_type size() const override;
 
 		virtual type_info *underlying_type() const override;
+
+		virtual std::string mangle() const override;
 
 		virtual bool is_same(const type_info &type) const override;
 
@@ -146,11 +155,13 @@ namespace elang::vm{
 	public:
 		typedef std::vector<ptr_type> ptr_list_type;
 
-		function_type_info(ptr_type return_type, const ptr_list_type &parameters);
+		function_type_info(ptr_type return_type, const ptr_list_type &parameters, attribute_type attributes);
 
-		function_type_info(ptr_type return_type, ptr_list_type &&parameters);
+		function_type_info(ptr_type return_type, ptr_list_type &&parameters, attribute_type attributes);
 
 		virtual size_type size() const override;
+
+		virtual std::string mangle() const override;
 
 		virtual bool is_same(const type_info &type) const override;
 
@@ -160,153 +171,16 @@ namespace elang::vm{
 
 		bool is_same_parameters(const function_type_info &type) const;
 
+		ptr_type return_type() const;
+
+		const ptr_list_type &parameters() const;
+
+		std::string mangle_parameters() const;
+
 	private:
 		ptr_type return_type_;
 		ptr_list_type parameters_;
 	};
-
-	class function_list_type_info : public type_info{
-	public:
-		typedef std::list<entry_type> ptr_list_type;
-
-		virtual size_type size() const override;
-
-		virtual bool is_same(const type_info &type) const override;
-
-		virtual bool is_function() const override;
-
-		void add(ptr_type value, attribute_type attributes);
-
-	private:
-		void add_(ptr_type value, attribute_type attributes);
-
-		function_type_info *get_same_parameters_(const function_type_info &function_type) const;
-
-		ptr_list_type list_;
-	};
-
-	class void_type_info : public type_info{
-	public:
-		virtual size_type size() const override;
-
-		virtual bool is_same(const type_info &type) const override;
-
-		virtual bool is_void() const override;
-	};
-
-	class bool_type_info : public type_info{
-	public:
-		virtual size_type size() const override;
-
-		virtual bool is_same(const type_info &type) const override;
-
-		virtual bool is_bool() const override;
-	};
-
-	class storage_type_info : public type_info{
-	public:
-		typedef std::unordered_map<std::string, entry_type> map_type;
-
-		storage_type_info();
-
-		explicit storage_type_info(const map_type &map);
-
-		explicit storage_type_info(map_type &&map);
-
-		virtual size_type size() const override;
-
-		virtual entry_type *find(const std::string &key) const override;
-
-		virtual bool is_same(const type_info &type) const override;
-
-		virtual bool is_storage() const override;
-
-		virtual void add(const std::string &key, ptr_type value, attribute_type attributes);
-
-	protected:
-		virtual void compute_size_();
-
-		virtual void update_size_(size_type size);
-
-		function_list_type_info *get_function_list_(const std::string &key);
-
-		map_type map_;
-		size_type size_;
-	};
-
-	using struct_type_info = storage_type_info;
-
-	class union_type_info : public storage_type_info{
-	public:
-		template <typename... args_types>
-		explicit union_type_info(args_types &&... args)
-			: storage_type_info(std::forward<args_types>(args)...){}
-
-	protected:
-		virtual void compute_size_() override;
-
-		virtual void update_size_(size_type size) override;
-	};
-
-	class proxy_type_info : public type_info{
-	public:
-		explicit proxy_type_info(ptr_type value);
-
-		virtual machine_value_type_id id() const override;
-
-		virtual size_type size() const override;
-
-		virtual type_info *underlying_type() const override;
-
-		virtual entry_type *find(const std::string &key) const override;
-
-		virtual bool is_same(const type_info &type) const override;
-
-		virtual bool is_compatible(const type_info &type) const override;
-
-		virtual bool is_primitive() const override;
-
-		virtual bool is_integral() const override;
-
-		virtual bool is_pointer() const override;
-
-		virtual bool is_array() const override;
-
-		virtual bool is_function() const override;
-
-		virtual bool is_void() const override;
-
-		virtual bool is_bool() const override;
-
-		virtual bool is_storage() const override;
-
-		virtual bool is_ref() const override;
-
-		virtual bool is_vref() const override;
-
-	private:
-		ptr_type value_;
-	};
-
-	class ref_type_info : public proxy_type_info{
-	public:
-		template <typename... args_types>
-		explicit ref_type_info(args_types &&... args)
-			: proxy_type_info(std::forward<args_types>(args)...){}
-
-		virtual bool is_ref() const override;
-	};
-
-	class vref_type_info : public proxy_type_info{
-	public:
-		template <typename... args_types>
-		explicit vref_type_info(args_types &&... args)
-			: proxy_type_info(std::forward<args_types>(args)...){}
-
-		virtual bool is_vref() const override;
-	};
-
-	using typedef_type_info = proxy_type_info;
 
 	ELANG_MAKE_OPERATORS(type_info::attribute_type);
 }
