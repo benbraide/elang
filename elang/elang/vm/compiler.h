@@ -20,6 +20,8 @@ namespace elang::vm{
 		undefined,
 		undefined_type,
 		unique_return_type,
+		type_expected,
+		storage_expected,
 		unreachable,
 	};
 
@@ -43,9 +45,14 @@ namespace elang::vm{
 		typedef std::vector<machine_register *> register_list_type;
 		typedef std::unordered_map<section_id_type, section_ptr_type> section_map_type;
 
+		struct current_context_info_type{
+			storage_symbol_entry *value;
+			bool bubble_search;
+		};
+
 		struct info_type{
-			symbol_entry::ptr_type global_context;
-			symbol_entry *current_context;
+			std::shared_ptr<namespace_symbol_entry> global_context;
+			current_context_info_type current_context;
 			const symbol_entry *symbol_mangling;
 		};
 
@@ -70,6 +77,8 @@ namespace elang::vm{
 		void reset_warnings();
 
 		void add_warning(compiler_warning value);
+
+		symbol_entry *find(const std::string &key) const;
 
 		info_type &info();
 

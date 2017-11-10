@@ -10,7 +10,8 @@ elang::vm::compiler::compiler()
 	section_map_[section_id_type::text] = std::make_shared<section_type>(section_id_type::text);
 
 	info_ = info_type{ std::make_shared<namespace_symbol_entry>("_G", nullptr, symbol_entry_attribute::nil) };
-	info_.current_context = info_.global_context.get();
+	info_.current_context.value = info_.global_context.get();
+	info_.current_context.bubble_search = true;
 }
 
 elang::vm::register_store &elang::vm::compiler::store(){
@@ -84,6 +85,19 @@ void elang::vm::compiler::reset_warnings(){
 
 void elang::vm::compiler::add_warning(compiler_warning value){
 	//#TODO: Implement
+}
+
+elang::vm::symbol_entry *elang::vm::compiler::find(const std::string &key) const{
+	if (!info_.current_context.bubble_search)
+		return info_.current_context.value->find(key);
+
+	symbol_entry *value;
+	for (auto context = info_.current_context.value; context != nullptr; context = dynamic_cast<storage_symbol_entry *>(context->parent())){
+		if ((value = context->find(key)) != nullptr)
+			return value;
+	}
+
+	return nullptr;
 }
 
 elang::vm::compiler::info_type &elang::vm::compiler::info(){

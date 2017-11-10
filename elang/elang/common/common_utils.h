@@ -5,6 +5,8 @@
 
 #include <string>
 
+#include "operator_id.h"
+
 namespace elang::common{
 	class utils{
 	public:
@@ -130,6 +132,152 @@ namespace elang::common{
 				digits.append(1u, static_cast<char_type>(*(iter++)));
 
 			return static_cast<char_type>(std::stoi(digits), nullptr, 16);
+		}
+
+		static std::string mangle_operator_symbol(operator_id id, const std::string &value){
+			return ((id == operator_id::unknown) ? mangle_operator_symbol(id) : mangle_operator_symbol(value));
+		}
+
+		static std::string mangle_operator_symbol(operator_id id){
+			switch (id){
+			case operator_id::comma:
+				return "c";
+			case operator_id::plus:
+				return "p";
+			case operator_id::minus:
+				return "m";
+			case operator_id::times:
+				return "t";
+			case operator_id::divide:
+				return "d";
+			case operator_id::modulus:
+				return "u";
+			case operator_id::bitwise_or:
+				return "o";
+			case operator_id::bitwise_and:
+				return "a";
+			case operator_id::bitwise_xor:
+				return "x";
+			case operator_id::left_shift:
+				return "ll";
+			case operator_id::right_shift:
+				return "gg";
+			case operator_id::bitwise_inverse:
+				return "i";
+			case operator_id::less:
+				return "l";
+			case operator_id::less_or_equal:
+				return "le";
+			case operator_id::greater:
+				return "g";
+			case operator_id::greater_or_equal:
+				return "ge";
+			case operator_id::equality:
+				return "ee";
+			case operator_id::inverse_equality:
+				return "ne";
+			case operator_id::relational_or:
+				return "oo";
+			case operator_id::relational_and:
+				return "aa";
+			case operator_id::relational_not:
+				return "n";
+			case operator_id::member_access:
+				return "b";
+			case operator_id::member_pointer_access:
+				return "mg";
+			case operator_id::call:
+				return "pc";
+			case operator_id::index:
+				return "sc";
+			case operator_id::new_:
+				return "w";
+			case operator_id::delete_:
+				return "nw";
+			case operator_id::sizeof_:
+				return "s";
+			case operator_id::increment:
+				return "pp";
+			case operator_id::decrement:
+				return "mm";
+			case operator_id::ternary:
+				return "q";
+			case operator_id::assignment:
+				return "e";
+			case operator_id::compound_plus:
+				return "pe";
+			case operator_id::compound_minus:
+				return "me";
+			case operator_id::compound_times:
+				return "te";
+			case operator_id::compound_divide:
+				return "de";
+			case operator_id::compound_modulus:
+				return "ue";
+			case operator_id::compound_bitwise_or:
+				return "oe";
+			case operator_id::compound_bitwise_and:
+				return "ae";
+			case operator_id::compound_bitwise_xor:
+				return "xe";
+			case operator_id::compound_left_shift:
+				return "lle";
+			case operator_id::compound_right_shift:
+				return "gge";
+			default:
+				break;
+			}
+
+			return "";
+		}
+
+		static std::string mangle_operator_symbol(const std::string &value){
+			std::string mangled_value;
+
+			mangled_value.reserve(value.size());
+			for (auto c : value)
+				mangled_value.append(1, mangle_operator_symbol_char(c));
+
+			return mangled_value;
+		}
+
+		static char mangle_operator_symbol_char(char value){
+			switch (value){
+			case ',':
+				return 'c';
+			case '+':
+				return 'p';
+			case '-':
+				return 'm';
+			case '*':
+				return 't';
+			case '/':
+				return 'd';
+			case '%':
+				return 'u';
+			case '|':
+				return 'o';
+			case '&':
+				return 'a';
+			case '^':
+				return 'x';
+			case '~':
+				return 'i';
+			case '<':
+				return 'l';
+			case '>':
+				return 'g';
+			case '!':
+				return 'n';
+			case '.':
+				return 'b';
+			case '=':
+				return 'e';
+			default:
+				break;
+			}
+
+			return '\0';
 		}
 	};
 }
