@@ -44,6 +44,8 @@ namespace elang::vm{
 		typedef std::unordered_map<section_id_type, section_ptr_type> section_map_type;
 
 		struct info_type{
+			symbol_entry::ptr_type global_context;
+			symbol_entry *current_context;
 			const symbol_entry *symbol_mangling;
 		};
 
@@ -77,7 +79,7 @@ namespace elang::vm{
 		register_list_type register_list_;
 		machine_value_type_id expression_type_;
 		unsigned int label_count_;
-		info_type info_{};
+		info_type info_;
 	};
 }
 
