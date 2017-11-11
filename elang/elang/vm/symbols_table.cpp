@@ -1,3 +1,9 @@
+#include "../asm/instruction_operand/constant_value_instruction_operand.h"
+#include "../asm/instruction_operand/expression_instruction_operand.h"
+#include "../asm/instruction_operand/register_instruction_operand.h"
+#include "../asm/instruction_operand/label_instruction_operand.h"
+#include "../asm/instruction_operand/memory_instruction_operand.h"
+
 #include "machine.h"
 #include "symbols_table.h"
 
@@ -123,6 +129,53 @@ bool elang::vm::named_symbol_entry::is(const std::string &name) const{
 	return (name == name_);
 }
 
+void elang::vm::storage_symbol_entry::add(const std::string &key, ptr_type value){
+	auto function_entry = dynamic_cast<function_symbol_entry *>(value.get());
+	if (function_entry == nullptr){
+		auto entry = map_.find(key);
+		if (entry != map_.end()){
+			if (!ELANG_IS(entry->second->attributes(), attribute_type::undefined_) || ELANG_IS(value->attributes(), attribute_type::undefined_))
+				throw compiler_error::redefinition;//Existing is already defined | New is also not defined
+
+			if (entry->second->mangle() != value->mangle())
+				throw compiler_error::redefinition;//Different types
+
+			entry->second->define();
+		}
+		else//New entry
+			map_[key] = value;
+	}
+	else//Add function
+		add_(key, *function_entry);
+}
+
+elang::vm::symbol_entry *elang::vm::storage_symbol_entry::find(const std::string &key) const{
+	auto entry = map_.find(key);
+	return ((entry == map_.end()) ? nullptr : entry->second.get());
+}
+
+elang::vm::symbol_entry::size_type elang::vm::storage_symbol_entry::get_stack_offset(size_type new_size){
+	return static_cast<size_type>(-1);
+}
+
+void elang::vm::storage_symbol_entry::add_(const std::string &key, function_symbol_entry &value){
+	get_function_list_(key)->add(value.reflect());
+}
+
+elang::vm::function_list_symbol_entry *elang::vm::storage_symbol_entry::get_function_list_(const std::string &key){
+	auto entry = map_.find(key);
+	if (entry == map_.end()){//Add new
+		auto function_list_entry = std::make_shared<function_list_symbol_entry>(key, this, attribute_type::nil);
+		map_[key] = function_list_entry;
+		return function_list_entry.get();
+	}
+
+	if (entry->second->id() != id_type::function)
+		throw compiler_error::redefinition;
+
+	return dynamic_cast<function_list_symbol_entry *>(entry->second.get());
+}
+
 elang::vm::symbol_entry::id_type elang::vm::variable_symbol_entry::id() const{
 	return id_type::variable;
 }
@@ -131,12 +184,47 @@ elang::vm::symbol_entry::type_info_ptr_type elang::vm::variable_symbol_entry::ty
 	return type_;
 }
 
+elang::vm::variable_symbol_entry::instruction_operand_ptr_type elang::vm::variable_symbol_entry::reference(){
+	++ref_count_;
+	if (ref_ != nullptr)
+		return ref_;
+
+	instruction_operand_ptr_type offset;
+	if (stack_offset_ != static_cast<size_type>(-1)){
+		auto constant = std::make_shared<elang::easm::instruction::constant_value_operand<__int64>>(stack_offset_);
+		auto reg = std::make_shared<elang::easm::instruction::register_operand>(*machine::cached_registers.stack_pointer);
+		offset = std::make_shared<elang::easm::instruction::expression_operand>(elang::easm::instruction_operator_id::add, reg, constant);
+	}
+	else//Static or global variable
+		offset = std::make_shared<elang::easm::instruction::label_operand>(mangle(), std::vector<std::string>{});
+
+	return (ref_ = std::make_shared<elang::easm::instruction::memory_operand>(elang::vm::machine_value_type_id::qword, offset));
+}
+
+elang::vm::symbol_entry::size_type elang::vm::variable_symbol_entry::reference_count() const{
+	return ref_count_;
+}
+
 elang::vm::symbol_entry::id_type elang::vm::function_symbol_entry::id() const{
 	return id_type::function;
 }
 
+elang::vm::symbol_entry::size_type elang::vm::function_symbol_entry::size() const{
+	return size_;
+}
+
+elang::vm::symbol_entry::type_info_ptr_type elang::vm::function_symbol_entry::type() const{
+	return type_;
+}
+
 std::string elang::vm::function_symbol_entry::mangle() const{
-	return (variable_symbol_entry::mangle() + dynamic_cast<function_type_info *>(type_.get())->mangle_parameters());
+	return (storage_symbol_entry::mangle() + dynamic_cast<function_type_info *>(type_.get())->mangle_parameters());
+}
+
+elang::vm::symbol_entry::size_type elang::vm::function_symbol_entry::get_stack_offset(size_type new_size){
+	auto value = size_;
+	size_ += new_size;
+	return value;
 }
 
 elang::vm::symbol_entry::id_type elang::vm::function_list_symbol_entry::id() const{
@@ -180,25 +268,40 @@ elang::vm::symbol_entry *elang::vm::function_list_symbol_entry::find(const type_
 }
 
 elang::vm::symbol_entry *elang::vm::function_list_symbol_entry::resolve(const type_info_ptr_list_type &parameter_types) const{
-	bool mismatch;
+	bool mismatch, same;
+	symbol_entry *match = nullptr, *compatible = nullptr;
+
 	for (auto entry : list_){
 		auto &parameters = dynamic_cast<function_type_info *>(entry->type().get())->parameters();
 		if (parameters.size() != parameter_types.size())
 			continue;
 
-		mismatch = false;
+		mismatch = same = true;
 		for (auto l = parameters.begin(), r = parameter_types.begin(); l == parameters.end(); ++l, ++r){
-			if (!(*l)->is_compatible(**r)){//Different types
+			if (match == nullptr && same && !(*l)->is_compatible(**r)){//Different types
+				same = false;
+				if (!(*l)->is_compatible(**r)){
+					mismatch = true;
+					break;
+				}
+			}
+			else if (!(*l)->is_compatible(**r)){
 				mismatch = true;
 				break;
 			}
 		}
 
-		if (!mismatch)
-			return entry.get();
+		if (!mismatch){//Match found
+			if (same){
+				match = entry.get();
+				break;
+			}
+			else if (compatible == nullptr)//Compatible
+				compatible = entry.get();
+		}
 	}
 
-	return nullptr;
+	return ((match == nullptr) ? compatible : match);
 }
 
 void elang::vm::function_list_symbol_entry::add_(function_symbol_entry &value){
@@ -225,64 +328,20 @@ elang::vm::symbol_entry::size_type elang::vm::type_symbol_entry::size() const{
 	return size_;
 }
 
-void elang::vm::storage_symbol_entry::add(const std::string &key, ptr_type value){
-	auto function_entry = dynamic_cast<function_symbol_entry *>(value.get());
-	if (function_entry == nullptr){
-		auto entry = map_.find(key);
-		if (entry != map_.end()){
-			if (!ELANG_IS(entry->second->attributes(), attribute_type::undefined_) || ELANG_IS(value->attributes(), attribute_type::undefined_))
-				throw compiler_error::redefinition;//Existing is already defined | New is also not defined
-
-			if (entry->second->mangle() != value->mangle())
-				throw compiler_error::redefinition;//Different types
-
-			entry->second->define();
-		}
-		else//New entry
-			map_[key] = value;
-	}
-	else//Add function
-		add_(key, *function_entry);
+elang::vm::symbol_entry::size_type elang::vm::union_type_symbol_entry::get_stack_offset(size_type new_size){
+	return 0u;
 }
 
-elang::vm::symbol_entry *elang::vm::storage_symbol_entry::find(const std::string &key) const{
-	auto entry = map_.find(key);
-	return ((entry == map_.end()) ? nullptr : entry->second.get());
+elang::vm::symbol_entry::size_type elang::vm::struct_type_symbol_entry::get_stack_offset(size_type new_size){
+	auto value = size_;
+	size_ += new_size;
+	return value;
 }
 
-void elang::vm::storage_symbol_entry::add_(const std::string &key, function_symbol_entry &value){
-	get_function_list_(key)->add(value.reflect());
-}
-
-elang::vm::function_list_symbol_entry *elang::vm::storage_symbol_entry::get_function_list_(const std::string &key){
-	auto entry = map_.find(key);
-	if (entry == map_.end()){//Add new
-		auto function_list_entry = std::make_shared<function_list_symbol_entry>(key, this, attribute_type::nil);
-		map_[key] = function_list_entry;
-		return function_list_entry.get();
-	}
-
-	if (entry->second->id() != id_type::function)
-		throw compiler_error::redefinition;
-
-	return dynamic_cast<function_list_symbol_entry *>(entry->second.get());
-}
-
-void elang::vm::type_symbol_entry::add(const std::string &key, ptr_type value){
-	storage_symbol_entry::add(key, value);
-	if (value->id() == id_type::variable)
-		update_size_(*value);
-}
-
-void elang::vm::enum_type_symbol_entry::update_size_(symbol_entry &value){}
-
-void elang::vm::union_type_symbol_entry::update_size_(symbol_entry &value){
-	if (size_ < value.size())//use max
-		size_ = value.size();
-}
-
-void elang::vm::struct_type_symbol_entry::update_size_(symbol_entry &value){
-	size_ += value.size();
+elang::vm::symbol_entry::size_type elang::vm::class_type_symbol_entry::get_stack_offset(size_type new_size){
+	auto value = size_;
+	size_ += new_size;
+	return value;
 }
 
 elang::vm::symbol_entry *elang::vm::class_type_symbol_entry::find(const std::string &key) const{
@@ -340,11 +399,6 @@ bool elang::vm::class_type_symbol_entry::is_base(symbol_entry &value) const{
 	}
 
 	return false;
-}
-
-void elang::vm::class_type_symbol_entry::update_size_(symbol_entry &value){
-	if (!ELANG_IS(value.attributes(), attribute_type::static_))
-		size_ += value.size();
 }
 
 elang::vm::symbol_entry::id_type elang::vm::namespace_symbol_entry::id() const{

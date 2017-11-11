@@ -65,6 +65,10 @@ bool elang::vm::type_info::is_bool() const{
 	return false;
 }
 
+bool elang::vm::type_info::is_numeric() const{
+	return false;
+}
+
 bool elang::vm::type_info::is_integral() const{
 	return false;
 }
@@ -85,8 +89,8 @@ bool elang::vm::type_info::is_same_(const type_info &type) const{
 	return (is_ref() == type.is_ref() && is_vref() == type.is_vref());
 }
 
-bool elang::vm::type_info::is_numeric() const{
-	return false;
+bool elang::vm::type_info::is_compatible_(const type_info &type) const{
+	return (is_vref() == type.is_vref() && (!is_ref() || type.is_ref()));
 }
 
 elang::vm::basic_type_info::basic_type_info(symbol_ptr_type value, attribute_type attributes)
@@ -136,11 +140,14 @@ bool elang::vm::basic_type_info::is_same(const type_info &type) const{
 }
 
 bool elang::vm::basic_type_info::is_compatible(const type_info &type) const{
+	if (is_ref())
+		return is_same(type);
 	return (is_numeric() == type.is_numeric());
 }
 
 bool elang::vm::basic_type_info::is_null_pointer() const{
-	return true;
+	auto primitive_value = dynamic_cast<primitive_type_symbol_entry *>(value_.get());
+	return (primitive_value != nullptr && primitive_value->primitive_type_id() == elang::common::primitive_type_id::nullptr_);
 }
 
 bool elang::vm::basic_type_info::is_void() const{
@@ -211,10 +218,9 @@ bool elang::vm::pointer_type_info::is_same(const type_info &type) const{
 }
 
 bool elang::vm::pointer_type_info::is_compatible(const type_info &type) const{
-	if (is_vref() != type.is_vref() || (is_ref() && !type.is_ref()))
-		return false;
-
-	return (type.is_null_pointer() || ((type.is_pointer() || type.is_array()) && (value_->is_void() || value_->is_same(*type.underlying_type()))));
+	if (is_ref())
+		return is_same(type);
+	return (type.is_null_pointer() || ((type.is_pointer() || type.is_array()) && (value_->is_void() || value_->is_compatible(*type.underlying_type()))));
 }
 
 bool elang::vm::pointer_type_info::is_pointer() const{

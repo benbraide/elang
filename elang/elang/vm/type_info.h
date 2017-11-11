@@ -81,6 +81,8 @@ namespace elang::vm{
 	protected:
 		virtual bool is_same_(const type_info &type) const;
 
+		virtual bool is_compatible_(const type_info &type) const;
+
 		attribute_type attributes_;
 	};
 
