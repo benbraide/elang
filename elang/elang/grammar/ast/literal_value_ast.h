@@ -16,6 +16,8 @@
 
 ELANG_AST_BEGIN
 
+using instruction_operand_ptr_type = elang::easm::instruction::operand_base::ptr_type;
+
 ELANG_AST_DECLARE_PAIR(integral_literal, __int64, ELANG_AST_NUMERIC_SUFFIX)
 ELANG_AST_DECLARE_PAIR(real_literal, long double, ELANG_AST_NUMERIC_SUFFIX)
 ELANG_AST_DECLARE_SINGLE_VARIANT(numeric_literal, integral_literal, real_literal)
@@ -81,9 +83,7 @@ struct literal_value_traverser{
 			throw elang::vm::compiler_error::number_too_big;
 	}
 
-	void operator()(const integral_literal &ast) const{
-		using instruction_operand_ptr_type = elang::easm::instruction::operand_base::ptr_type;
-
+	instruction_operand_ptr_type operator()(const integral_literal &ast) const{
 		elang::vm::machine_value_type_id value_type;
 		switch (ast.second.value_or(elang::common::numeric_literal_suffix::int32)){
 		case elang::common::numeric_literal_suffix::int8:
@@ -123,32 +123,14 @@ struct literal_value_traverser{
 			break;
 		}
 
-		auto reg = elang::vm::machine::compiler.store().get(value_type);
-		if (reg == nullptr)//Error
-			throw elang::vm::machine_error::no_register;
-
-		auto reg_op = std::make_shared<elang::easm::instruction::register_operand>(*reg);
-		auto const_op = std::make_shared<elang::easm::instruction::constant_value_operand<__int64>>(ast.first);
-		auto instruction = std::make_shared<elang::easm::instruction::mov>(std::vector<instruction_operand_ptr_type>({ reg_op, const_op }));
-
-		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
+		return std::make_shared<elang::easm::instruction::constant_value_operand<__int64>>(value_type, ast.first);
 	}
 
-	void operator()(const real_literal &ast) const{
-		using instruction_operand_ptr_type = elang::easm::instruction::operand_base::ptr_type;
-
-		auto reg = elang::vm::machine::compiler.store().get(elang::vm::machine_value_type_id::float_);
-		if (reg == nullptr)//Error
-			throw elang::vm::machine_error::no_register;
-
-		auto reg_op = std::make_shared<elang::easm::instruction::register_operand>(*reg);
-		auto const_op = std::make_shared<elang::easm::instruction::constant_value_operand<long double>>(ast.first);
-		auto instruction = std::make_shared<elang::easm::instruction::mov>(std::vector<instruction_operand_ptr_type>({ reg_op, const_op }));
-
-		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
+	instruction_operand_ptr_type operator()(const real_literal &ast) const{
+		return std::make_shared<elang::easm::instruction::constant_value_operand<long double>>(elang::vm::machine_value_type_id::float_, ast.first);
 	}
 
-	void operator()(const string_literal &ast) const{
+	instruction_operand_ptr_type operator()(const string_literal &ast) const{
 		using instruction_operand_ptr_type = elang::easm::instruction::operand_base::ptr_type;
 		using instruction_ptr_type = elang::easm::instruction::base::ptr_type;
 
@@ -162,39 +144,35 @@ struct literal_value_traverser{
 
 		if (is_char(ast.first)){
 			check_char_count(ast.first, value);
-
 			auto value_type = (is_wide(ast.first) ? elang::vm::machine_value_type_id::word : elang::vm::machine_value_type_id::byte);
-			auto reg = elang::vm::machine::compiler.store().get(value_type);
-			if (reg == nullptr)//Error
-				throw elang::vm::machine_error::no_register;
-
-			auto reg_op = std::make_shared<elang::easm::instruction::register_operand>(*reg);
-			auto str_op = std::make_shared<elang::easm::instruction::string_value_operand>(std::move(value));
-			auto instruction = std::make_shared<elang::easm::instruction::mov>(std::vector<instruction_operand_ptr_type>({ reg_op, str_op }));
-
-			elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
-			return;
+			return std::make_shared<elang::easm::instruction::string_value_operand>(value_type, std::move(value));
 		}
 
-		value.append("\\0");
-		instruction_ptr_type instruction;
-
 		auto label = elang::vm::machine::compiler.generate_label(elang::vm::label_type::constant);
-		auto str_op = std::make_shared<elang::easm::instruction::string_value_operand>(std::move(value));
+		{//Add string allocation
+			value.append("\\0");
 
-		if (is_wide(ast.first))
-			instruction = std::make_shared<elang::easm::instruction::dw>(std::vector<instruction_operand_ptr_type>({ str_op }));
-		else//Byte
-			instruction = std::make_shared<elang::easm::instruction::db>(std::vector<instruction_operand_ptr_type>({ str_op }));
+			instruction_ptr_type instruction;
+			auto str_op = std::make_shared<elang::easm::instruction::string_value_operand>(std::move(value));
 
-		elang::vm::machine::compiler.section(elang::easm::section_id::rodata).add(nullptr, label);
-		elang::vm::machine::compiler.section(elang::easm::section_id::rodata).add(instruction);
+			if (is_wide(ast.first))
+				instruction = std::make_shared<elang::easm::instruction::dw>(std::vector<instruction_operand_ptr_type>({ str_op }));
+			else//Byte
+				instruction = std::make_shared<elang::easm::instruction::db>(std::vector<instruction_operand_ptr_type>({ str_op }));
 
-		auto reg_op = std::make_shared<elang::easm::instruction::register_operand>(*reg);
-		auto label_op = std::make_shared<elang::easm::instruction::label_operand>(label, std::vector<std::string>());
-		instruction = std::make_shared<elang::easm::instruction::mov>(std::vector<instruction_operand_ptr_type>({ reg_op, label_op }));
+			elang::vm::machine::compiler.section(elang::easm::section_id::rodata).add(nullptr, label);
+			elang::vm::machine::compiler.section(elang::easm::section_id::rodata).add(instruction);
+		}
 
-		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
+		return std::make_shared<elang::easm::instruction::label_operand>(label, std::vector<std::string>());
+	}
+
+	instruction_operand_ptr_type operator()(const numeric_literal &ast) const{
+		return boost::apply_visitor(literal_value_traverser(), ast.value);
+	}
+
+	instruction_operand_ptr_type operator()(const literal_value &ast) const{
+		return boost::apply_visitor(literal_value_traverser(), ast.value);
 	}
 };
 

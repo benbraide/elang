@@ -1,3 +1,6 @@
+#include "../asm/instruction_operand/label_instruction_operand.h"
+#include "../asm/instruction_operand/memory_instruction_operand.h"
+
 #include "machine.h"
 #include "compiler.h"
 
@@ -77,6 +80,48 @@ std::string elang::vm::compiler::generate_label(label_type type){
 	}
 
 	throw compiler_error::unreachable;
+}
+
+elang::vm::compiler::instruction_operand_ptr_type elang::vm::compiler::get_constant_operand(elang::common::constant_value type){
+	auto entry = constant_value_map_.find(type);
+	if (entry != constant_value_map_.end())
+		return entry->second;
+
+	std::string label;
+	machine_value_type_id size;
+
+	switch (type){
+	case elang::common::constant_value::false_:
+		label = "__false__";
+		size = machine_value_type_id::byte;
+		break;
+	case elang::common::constant_value::true_:
+		label = "__true__";
+		size = machine_value_type_id::byte;
+		break;
+	case elang::common::constant_value::indeterminate:
+		label = "__ind__";
+		size = machine_value_type_id::byte;
+		break;
+	case elang::common::constant_value::nullptr_:
+		label = "__null__";
+		size = machine_value_type_id::qword;
+		break;
+	case elang::common::constant_value::nan_:
+		label = "__nan__";
+		size = machine_value_type_id::qword;
+		break;
+	case elang::common::constant_value::infinite_:
+		label = "__inf__";
+		size = machine_value_type_id::qword;
+		break;
+	default:
+		throw compiler_error::unreachable;
+		break;
+	}
+
+	auto label_op = std::make_shared<elang::easm::instruction::label_operand>(label, std::vector<std::string>());
+	return (constant_value_map_[type] = std::make_shared<elang::easm::instruction::memory_operand>(size, label_op));
 }
 
 void elang::vm::compiler::reset_warnings(){

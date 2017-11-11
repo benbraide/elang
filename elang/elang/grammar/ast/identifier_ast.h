@@ -120,7 +120,17 @@ struct operator_identifier_resolver{
 };
 
 struct identifier_traverser{
-	
+	template <typename id_type>
+	elang::easm::instruction::operand_base::ptr_type operator()(const id_type &ast) const{
+		auto entry = identifier_resolver()(ast);
+		if (entry == nullptr)//Entry not found
+			throw elang::vm::compiler_error::undefined;
+
+		if (entry->id() != elang::vm::symbol_entry_id::variable)
+			throw elang::vm::compiler_error::variable_expected;
+
+		return dynamic_cast<elang::vm::variable_symbol_entry *>(entry)->reference();
+	}
 };
 
 ELANG_AST_END
