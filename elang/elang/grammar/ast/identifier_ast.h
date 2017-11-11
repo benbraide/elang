@@ -15,7 +15,7 @@ using identifier = elang::grammar::elang_identifier_ast;
 
 struct non_operator_identifier_compatible;
 
-ELANG_AST_DECLARE_SINGLE_VARIANT(operator_identifier, operator_symbol, x3::forward_ast<non_operator_identifier_compatible>)
+ELANG_AST_DECLARE_SINGLE_VARIANT(operator_identifier, elang::common::operator_id, operator_symbol, x3::forward_ast<non_operator_identifier_compatible>)
 
 ELANG_AST_DECLARE_SINGLE_VARIANT(global_qualified_identifier, identifier, operator_identifier)
 
@@ -107,6 +107,10 @@ struct operator_identifier_resolver{
 			throw elang::vm::compiler_error::type_expected;
 
 		return ("@" + entry->mangle());
+	}
+
+	static std::string mangle(elang::common::operator_id id){
+		return ("@" + elang::common::utils::mangle_operator_symbol(id));
 	}
 
 	static std::string mangle(const operator_symbol &ast){
