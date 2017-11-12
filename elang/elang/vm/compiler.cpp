@@ -15,6 +15,9 @@ elang::vm::compiler::compiler()
 	info_ = info_type{ std::make_shared<namespace_symbol_entry>("_G", nullptr, symbol_entry_attribute::nil) };
 	info_.current_context.value = info_.global_context.get();
 	info_.current_context.bubble_search = true;
+
+	for (auto id = primitive_type_id_type::auto_; id <= primitive_type_id_type::float_; id = static_cast<primitive_type_id_type>(static_cast<int>(id) + 1))
+		primitive_type_map_[id] = std::make_shared<primitive_type_info>(id, type_info::attribute_type::nil);
 }
 
 elang::vm::register_store &elang::vm::compiler::store(){
@@ -143,6 +146,11 @@ elang::vm::symbol_entry *elang::vm::compiler::find(const std::string &key) const
 	}
 
 	return nullptr;
+}
+
+elang::vm::compiler::type_info_ptr_type elang::vm::compiler::find_primitive_type(primitive_type_id_type id) const{
+	auto entry = primitive_type_map_.find(id);
+	return ((entry == primitive_type_map_.end()) ? nullptr : entry->second);
 }
 
 elang::vm::compiler::info_type &elang::vm::compiler::info(){

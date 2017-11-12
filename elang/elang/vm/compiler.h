@@ -39,6 +39,9 @@ namespace elang::vm{
 
 	class compiler{
 	public:
+		typedef type_info::ptr_type type_info_ptr_type;
+		typedef elang::common::primitive_type_id primitive_type_id_type;
+
 		typedef elang::easm::section_id section_id_type;
 		typedef elang::easm::instruction_error error_type;
 
@@ -48,7 +51,9 @@ namespace elang::vm{
 
 		typedef std::vector<machine_register *> register_list_type;
 		typedef std::unordered_map<section_id_type, section_ptr_type> section_map_type;
+
 		typedef std::unordered_map<elang::common::constant_value, instruction_operand_ptr_type> constant_value_map_type;
+		typedef std::unordered_map<elang::common::primitive_type_id, type_info_ptr_type> primitive_type_map_type;
 
 		struct current_context_info_type{
 			storage_symbol_entry *value;
@@ -87,6 +92,8 @@ namespace elang::vm{
 
 		symbol_entry *find(const std::string &key) const;
 
+		type_info_ptr_type find_primitive_type(primitive_type_id_type id) const;
+
 		info_type &info();
 
 	private:
@@ -95,6 +102,7 @@ namespace elang::vm{
 		register_list_type register_list_;
 		machine_value_type_id expression_type_;
 		constant_value_map_type constant_value_map_;
+		primitive_type_map_type primitive_type_map_;
 		unsigned int label_count_;
 		info_type info_;
 	};
