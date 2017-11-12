@@ -93,15 +93,15 @@ bool elang::vm::type_info::is_compatible_(const type_info &type) const{
 	return (is_vref() == type.is_vref() && (!is_ref() || type.is_ref()));
 }
 
-elang::vm::basic_type_info::basic_type_info(symbol_ptr_type value, attribute_type attributes)
-	: type_info(attributes), value_(value){}
+elang::vm::primitive_type_info::primitive_type_info(id_type id, attribute_type attributes)
+	: type_info(attributes), id_(id){}
 
-elang::vm::machine_value_type_id elang::vm::basic_type_info::id() const{
-	auto primitive_value = dynamic_cast<primitive_type_symbol_entry *>(value_.get());
-	if (primitive_value == nullptr)
-		return machine_value_type_id::unknown;
+elang::vm::type_info::ptr_type elang::vm::primitive_type_info::clone(attribute_type attributes) const{
+	return std::make_shared<primitive_type_info>(id_, attributes);
+}
 
-	switch (primitive_value->primitive_type_id()){
+elang::vm::machine_value_type_id elang::vm::primitive_type_info::id() const{
+	switch (id_){
 	case elang::common::primitive_type_id::int8_:
 	case elang::common::primitive_type_id::uint8_:
 		return machine_value_type_id::byte;
@@ -120,83 +120,146 @@ elang::vm::machine_value_type_id elang::vm::basic_type_info::id() const{
 		break;
 	}
 
-	throw compiler_error::unreachable;
+	return machine_value_type_id::unknown;
 }
 
-elang::vm::type_info::size_type elang::vm::basic_type_info::size() const{
-	return value_->size();
+elang::vm::type_info::size_type elang::vm::primitive_type_info::size() const{
+	switch (id_){
+	case id_type::char_:
+	case id_type::int8_:
+	case id_type::uint8_:
+		return 1u;
+	case id_type::wchar_:
+	case id_type::int16_:
+	case id_type::uint16_:
+		return 2u;
+	case id_type::int32_:
+	case id_type::uint32_:
+		return 4u;
+	case id_type::int64_:
+	case id_type::uint64_:
+	case id_type::float_:
+	case id_type::nullptr_:
+		return 8u;
+	default:
+		break;
+	}
+
+	return 0u;
 }
 
-std::string elang::vm::basic_type_info::mangle() const{
-	return (mangle_attributes() + value_->mangle());
+std::string elang::vm::primitive_type_info::mangle() const{
+	return (mangle_attributes() + mangle_());
 }
 
-bool elang::vm::basic_type_info::is_same(const type_info &type) const{
+bool elang::vm::primitive_type_info::is_same(const type_info &type) const{
 	if (!is_same_(type))
 		return false;
 
-	auto basic_type = dynamic_cast<const basic_type_info *>(&type);
-	return (basic_type != nullptr && basic_type->value_ == value_);
+	auto basic_type = dynamic_cast<const primitive_type_info *>(&type);
+	return (basic_type != nullptr && basic_type->id_ == id_);
 }
 
-bool elang::vm::basic_type_info::is_compatible(const type_info &type) const{
+bool elang::vm::primitive_type_info::is_compatible(const type_info &type) const{
 	if (is_ref())
 		return is_same(type);
 	return (is_numeric() == type.is_numeric());
 }
 
-bool elang::vm::basic_type_info::is_null_pointer() const{
-	auto primitive_value = dynamic_cast<primitive_type_symbol_entry *>(value_.get());
-	return (primitive_value != nullptr && primitive_value->primitive_type_id() == elang::common::primitive_type_id::nullptr_);
+bool elang::vm::primitive_type_info::is_null_pointer() const{
+	return (id_ == id_type::nullptr_);
 }
 
-bool elang::vm::basic_type_info::is_void() const{
-	auto primitive_value = dynamic_cast<primitive_type_symbol_entry *>(value_.get());
-	return (primitive_value != nullptr && primitive_value->primitive_type_id() == elang::common::primitive_type_id::void_);
+bool elang::vm::primitive_type_info::is_void() const{
+	return (id_ == id_type::void_);
 }
 
-bool elang::vm::basic_type_info::is_bool() const{
-	auto primitive_value = dynamic_cast<primitive_type_symbol_entry *>(value_.get());
-	return (primitive_value != nullptr && primitive_value->primitive_type_id() == elang::common::primitive_type_id::bool_);
+bool elang::vm::primitive_type_info::is_bool() const{
+	return (id_ == id_type::bool_);
 }
 
-bool elang::vm::basic_type_info::is_numeric() const{
-	auto primitive_value = dynamic_cast<primitive_type_symbol_entry *>(value_.get());
-	if (primitive_value == nullptr)
-		return false;
+bool elang::vm::primitive_type_info::is_numeric() const{
+	return (id_ >= id_type::char_ && id_ <= id_type::float_);
+}
 
-	switch (primitive_value->primitive_type_id()){
-	case elang::common::primitive_type_id::void_:
-	case elang::common::primitive_type_id::nullptr_:
-	case elang::common::primitive_type_id::bool_:
-		return false;
+bool elang::vm::primitive_type_info::is_integral() const{
+	return (id_ >= id_type::char_ && id_ <= id_type::uint64_);
+}
+
+std::string elang::vm::primitive_type_info::mangle_() const{
+	switch (id_){
+	case id_type::auto_:
+		return "a";
+	case id_type::void_:
+		return "v";
+	case id_type::nullptr_:
+		return "n";
+	case id_type::bool_:
+		return "b";
+	case id_type::char_:
+		return "c";
+	case id_type::wchar_:
+		return "w";
+	case id_type::int8_:
+		return "g";
+	case id_type::uint8_:
+		return "d";
+	case id_type::int16_:
+		return "s";
+	case id_type::uint16_:
+		return "e";
+	case id_type::int32_:
+		return "i";
+	case id_type::uint32_:
+		return "u";
+	case id_type::int64_:
+		return "l";
+	case id_type::uint64_:
+		return "q";
+	case id_type::float_:
+		return "f";
 	default:
 		break;
 	}
 
-	return true;
+	throw compiler_error::unreachable;
 }
 
-bool elang::vm::basic_type_info::is_integral() const{
-	auto primitive_value = dynamic_cast<primitive_type_symbol_entry *>(value_.get());
-	if (primitive_value == nullptr)
+elang::vm::user_type_info::user_type_info(symbol_ptr_type value, attribute_type attributes)
+	: type_info(attributes), value_(value){}
+
+elang::vm::type_info::ptr_type elang::vm::user_type_info::clone(attribute_type attributes) const{
+	return std::make_shared<user_type_info>(value_, attributes);
+}
+
+elang::vm::type_info::size_type elang::vm::user_type_info::size() const{
+	return value_->size();
+}
+
+std::string elang::vm::user_type_info::mangle() const{
+	return (mangle_attributes() + value_->mangle());
+}
+
+bool elang::vm::user_type_info::is_same(const type_info &type) const{
+	if (!is_same_(type))
 		return false;
 
-	switch (primitive_value->primitive_type_id()){
-	case elang::common::primitive_type_id::void_:
-	case elang::common::primitive_type_id::nullptr_:
-	case elang::common::primitive_type_id::bool_:
-	case elang::common::primitive_type_id::float_:
-		return false;
-	default:
-		break;
-	}
+	auto basic_type = dynamic_cast<const user_type_info *>(&type);
+	return (basic_type != nullptr && basic_type->value_ == value_);
+}
 
-	return true;
+bool elang::vm::user_type_info::is_compatible(const type_info &type) const{
+	if (is_ref())
+		return is_same(type);
+	return type_info::is_compatible(type);//#TODO: Implement
 }
 
 elang::vm::pointer_type_info::pointer_type_info(ptr_type value, attribute_type attributes)
 	: type_info(attributes), value_(value){}
+
+elang::vm::type_info::ptr_type elang::vm::pointer_type_info::clone(attribute_type attributes) const{
+	return std::make_shared<pointer_type_info>(value_, attributes);
+}
 
 elang::vm::type_info::size_type elang::vm::pointer_type_info::size() const{
 	return 8u;
@@ -230,6 +293,10 @@ bool elang::vm::pointer_type_info::is_pointer() const{
 elang::vm::array_type_info::array_type_info(ptr_type value, size_type count, attribute_type attributes)
 	: type_info(attributes), value_(value), count_(count){}
 
+elang::vm::type_info::ptr_type elang::vm::array_type_info::clone(attribute_type attributes) const{
+	return std::make_shared<array_type_info>(value_, count_, attributes);
+}
+
 elang::vm::type_info::size_type elang::vm::array_type_info::size() const{
 	return (value_->size() * count_);
 }
@@ -255,6 +322,10 @@ elang::vm::function_type_info::function_type_info(ptr_type return_type, const pt
 
 elang::vm::function_type_info::function_type_info(ptr_type return_type, ptr_list_type &&parameters, attribute_type attributes)
 	: type_info(attributes), return_type_(return_type), parameters_(std::move(parameters)){}
+
+elang::vm::type_info::ptr_type elang::vm::function_type_info::clone(attribute_type attributes) const{
+	return std::make_shared<function_type_info>(return_type_, parameters_, attributes);
+}
 
 elang::vm::type_info::size_type elang::vm::function_type_info::size() const{
 	return 8u;

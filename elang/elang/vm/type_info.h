@@ -10,6 +10,7 @@
 #include <unordered_map>
 
 #include "../common/macro.h"
+#include "../common/primitive_type_id.h"
 
 #include "machine_value_type_id.h"
 
@@ -37,6 +38,8 @@ namespace elang::vm{
 		explicit type_info(attribute_type attributes);
 
 		virtual ptr_type reflect();
+
+		virtual ptr_type clone(attribute_type attributes) const = 0;
 
 		virtual machine_value_type_id id() const;
 
@@ -86,9 +89,13 @@ namespace elang::vm{
 		attribute_type attributes_;
 	};
 
-	class basic_type_info : public type_info{
+	class primitive_type_info : public type_info{
 	public:
-		basic_type_info(symbol_ptr_type value, attribute_type attributes);
+		typedef elang::common::primitive_type_id id_type;
+
+		primitive_type_info(id_type id, attribute_type attributes);
+
+		virtual ptr_type clone(attribute_type attributes) const override;
 
 		virtual machine_value_type_id id() const override;
 
@@ -100,15 +107,35 @@ namespace elang::vm{
 
 		virtual bool is_compatible(const type_info &type) const override;
 
-		virtual bool is_null_pointer() const;
+		virtual bool is_null_pointer() const override;
 
-		virtual bool is_void() const;
+		virtual bool is_void() const override;
 
-		virtual bool is_bool() const;
+		virtual bool is_bool() const override;
 
 		virtual bool is_numeric() const override;
 
 		virtual bool is_integral() const override;
+
+	private:
+		virtual std::string mangle_() const;
+
+		id_type id_;
+	};
+
+	class user_type_info : public type_info{
+	public:
+		user_type_info(symbol_ptr_type value, attribute_type attributes);
+
+		virtual ptr_type clone(attribute_type attributes) const override;
+
+		virtual size_type size() const override;
+
+		virtual std::string mangle() const override;
+
+		virtual bool is_same(const type_info &type) const override;
+
+		virtual bool is_compatible(const type_info &type) const override;
 
 	private:
 		symbol_ptr_type value_;
@@ -117,6 +144,8 @@ namespace elang::vm{
 	class pointer_type_info : public type_info{
 	public:
 		pointer_type_info(ptr_type value, attribute_type attributes);
+
+		virtual ptr_type clone(attribute_type attributes) const override;
 
 		virtual size_type size() const override;
 
@@ -137,6 +166,8 @@ namespace elang::vm{
 	class array_type_info : public type_info{
 	public:
 		array_type_info(ptr_type value, size_type count, attribute_type attributes);
+
+		virtual ptr_type clone(attribute_type attributes) const override;
 
 		virtual size_type size() const override;
 
@@ -160,6 +191,8 @@ namespace elang::vm{
 		function_type_info(ptr_type return_type, const ptr_list_type &parameters, attribute_type attributes);
 
 		function_type_info(ptr_type return_type, ptr_list_type &&parameters, attribute_type attributes);
+
+		virtual ptr_type clone(attribute_type attributes) const override;
 
 		virtual size_type size() const override;
 

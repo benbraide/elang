@@ -67,26 +67,6 @@ namespace elang::vm{
 		attribute_type attributes_;
 	};
 
-	class primitive_type_symbol_entry : public symbol_entry{
-	public:
-		typedef elang::common::primitive_type_id primitive_type_id_type;
-
-		primitive_type_symbol_entry(symbol_entry *parent, primitive_type_id_type primitive_type_id);
-
-		virtual id_type id() const override;
-
-		virtual size_type size() const override;
-
-		virtual std::string mangle() const override;
-
-		virtual bool is(const std::string &name) const override;
-
-		primitive_type_id_type primitive_type_id() const;
-
-	protected:
-		primitive_type_id_type primitive_type_id_;
-	};
-
 	class named_symbol_entry : public symbol_entry{
 	public:
 		template <typename... args_types>
