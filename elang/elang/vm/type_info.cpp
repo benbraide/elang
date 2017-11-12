@@ -85,6 +85,10 @@ bool elang::vm::type_info::is_vref() const{
 	return ELANG_IS(attributes_, attribute_type::vref);
 }
 
+bool elang::vm::type_info::is_variadic() const{
+	return false;
+}
+
 bool elang::vm::type_info::is_same_(const type_info &type) const{
 	return (is_ref() == type.is_ref() && is_vref() == type.is_vref());
 }
@@ -377,4 +381,38 @@ std::string elang::vm::function_type_info::mangle_parameters() const{
 		mangled_parameters += parameter->mangle();
 
 	return mangled_parameters;
+}
+
+elang::vm::variadic_type_info::variadic_type_info(ptr_type value, attribute_type attributes)
+	: type_info(attributes), value_(value){}
+
+elang::vm::type_info::ptr_type elang::vm::variadic_type_info::clone(attribute_type attributes) const{
+	return std::make_shared<variadic_type_info>(value_, attributes);
+}
+
+elang::vm::type_info::size_type elang::vm::variadic_type_info::size() const{
+	return value_->size();
+}
+
+elang::vm::type_info *elang::vm::variadic_type_info::underlying_type() const{
+	return value_.get();
+}
+
+std::string elang::vm::variadic_type_info::mangle() const{
+	return ("N" + mangle_attributes() + value_->mangle());
+}
+
+bool elang::vm::variadic_type_info::is_same(const type_info &type) const{
+	if (!is_same_(type))
+		return false;
+
+	return (type.is_variadic() && type.underlying_type()->is_const() == value_->is_const() && type.underlying_type()->is_same(*value_));
+}
+
+bool elang::vm::variadic_type_info::is_compatible(const type_info &type) const{
+	return value_->is_compatible(type);
+}
+
+bool elang::vm::variadic_type_info::is_variadic() const{
+	return true;
 }

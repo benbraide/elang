@@ -81,6 +81,8 @@ namespace elang::vm{
 
 		virtual bool is_vref() const;
 
+		virtual bool is_variadic() const;
+
 	protected:
 		virtual bool is_same_(const type_info &type) const;
 
@@ -215,6 +217,28 @@ namespace elang::vm{
 	private:
 		ptr_type return_type_;
 		ptr_list_type parameters_;
+	};
+
+	class variadic_type_info : public type_info{
+	public:
+		variadic_type_info(ptr_type value, attribute_type attributes);
+
+		virtual ptr_type clone(attribute_type attributes) const override;
+
+		virtual size_type size() const override;
+
+		virtual type_info *underlying_type() const override;
+
+		virtual std::string mangle() const override;
+
+		virtual bool is_same(const type_info &type) const override;
+
+		virtual bool is_compatible(const type_info &type) const override;
+
+		virtual bool is_variadic() const override;
+
+	private:
+		ptr_type value_;
 	};
 
 	ELANG_MAKE_OPERATORS(type_info::attribute_type);
