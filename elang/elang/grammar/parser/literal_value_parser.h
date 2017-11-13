@@ -54,9 +54,13 @@ namespace elang::grammar::parser{
 
 	x3::rule<class integral_literal, ast::integral_literal> const integral_literal = "integral_literal";
 	x3::rule<class real_literal, ast::real_literal> const real_literal = "real_literal";
+	x3::rule<class numeric_literal, ast::numeric_literal> const numeric_literal = "numeric_literal";
+
+	x3::rule<class literal_value, ast::literal_value> const literal_value = "literal_value";
 
 	auto const integral_literal_def = x3::lexeme[(("0x" >> long_long_hex) | ("0b" >> long_long_bin) | ("0" >> long_long_oct) | x3::long_long) >> -integral_literal_symbols_];
 	auto const real_literal_def = x3::lexeme[(long_double_ >> -real_literal_symbols_)];
+	auto const numeric_literal_def = (real_literal | integral_literal);
 
 	ELANG_PARSER_DEFINE_STRING(narrow, "\"");
 	ELANG_PARSER_DEFINE_STRING(wide, "L\"");
@@ -64,9 +68,23 @@ namespace elang::grammar::parser{
 	ELANG_PARSER_DEFINE_STRING(narrow_char, "\'");
 	ELANG_PARSER_DEFINE_STRING(wide_char, "L\'");
 
+	auto const literal_value_def = (
+		ELANG_PARSER_STRING_NAME(narrow) |
+		ELANG_PARSER_ESC_STRING_NAME(narrow) |
+		ELANG_PARSER_STRING_NAME(wide) |
+		ELANG_PARSER_ESC_STRING_NAME(wide) |
+		ELANG_PARSER_STRING_NAME(narrow_char) |
+		ELANG_PARSER_ESC_STRING_NAME(narrow_char) |
+		ELANG_PARSER_STRING_NAME(wide_char) |
+		ELANG_PARSER_ESC_STRING_NAME(wide_char) |
+		numeric_literal
+	);
+
 	BOOST_SPIRIT_DEFINE(
 		integral_literal,
-		real_literal
+		real_literal,
+		numeric_literal,
+		literal_value
 	)
 }
 
