@@ -32,8 +32,19 @@ void elang::vm::runtime_stack::push(const char *value, size_type size){
 		throw error_type::overflow;//Overflow
 
 	if (value != nullptr)//Copy bytes
-		memcpy(data_ + current_address, value, size);
+		memcpy((data_ + current_address), value, size);
 
+	machine::cached_registers.stack_pointer->write(next_address);//Update register value
+}
+
+void elang::vm::runtime_stack::push(uint64_type address, size_type size){
+	auto current_address = machine::cached_registers.stack_pointer->read<uint64_type>();
+	auto next_address = (current_address + size);//Address after write
+
+	if ((data_ + (next_address - address_)) > max_)
+		throw error_type::overflow;//Overflow
+
+	machine::memory_manager.read(address, (data_ + current_address), size);
 	machine::cached_registers.stack_pointer->write(next_address);//Update register value
 }
 
@@ -47,7 +58,16 @@ void elang::vm::runtime_stack::pop(char *value, size_type size){
 		throw error_type::underflow;//Error
 
 	if (value != nullptr)//Copy bytes
-		memcpy(value, data_ + (current_address - size), size);
+		memcpy(value, (data_ + (current_address - size)), size);
 
+	machine::cached_registers.stack_pointer->write(current_address - size);//Update register value
+}
+
+void elang::vm::runtime_stack::pop(uint64_type address, size_type size){
+	auto current_address = machine::cached_registers.stack_pointer->read<uint64_type>();
+	if ((current_address - address_) < size)
+		throw error_type::underflow;//Error
+
+	machine::memory_manager.write(address, (data_ + (current_address - size)), size);
 	machine::cached_registers.stack_pointer->write(current_address - size);//Update register value
 }

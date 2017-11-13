@@ -23,6 +23,8 @@ namespace elang::vm{
 
 		void push(const char *value, size_type size);
 
+		void push(uint64_type address, size_type size);
+
 		template <typename value_type>
 		void push(value_type value){
 			push(reinterpret_cast<char *>(&value), sizeof(value_type));
@@ -31,6 +33,8 @@ namespace elang::vm{
 		void pop(size_type size);
 
 		void pop(char *value, size_type size);
+
+		void pop(uint64_type address, size_type size);
 
 		template <typename value_type>
 		value_type pop(){

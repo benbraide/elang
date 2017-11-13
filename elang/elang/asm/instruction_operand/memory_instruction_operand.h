@@ -58,11 +58,27 @@ namespace elang::easm::instruction{
 
 		virtual void print(writer_type &writer, writer_type &wide_writer) const override{
 			if (value_type_id_ != value_type_id_type::unknown)
-				writer << elang::vm::machine_value_type_id_utils::machine_value_type_id_to_string(value_type_id_);
+				writer << elang::vm::machine_value_type_id_utils::machine_value_type_id_to_string(value_type_id_) << " ptr";
 
 			writer << "[" << writer_type::manip_type::flush;
 			value_->print(writer, wide_writer);
 			writer << "]" << writer_type::manip_type::flush;
+		}
+
+		virtual void push_onto_stack() const override{
+			auto size = memory_size();
+			if (size != 0u)
+				elang::vm::machine::runtime.stack.push(value_->read<uint64_type>(), size);
+			else//Error
+				throw error_type::ambiguous_operation;
+		}
+
+		virtual void pop_from_stack() override{
+			auto size = memory_size();
+			if (size != 0u)
+				elang::vm::machine::runtime.stack.pop(value_->read<uint64_type>(), size);
+			else//Error
+				throw error_type::ambiguous_operation;
 		}
 
 	protected:

@@ -34,6 +34,7 @@
 #include "../../asm/instruction/extended/extended_mov_instruction.h"
 #include "../../asm/instruction/extended/extended_arithmetic_instruction.h"
 #include "../../asm/instruction/extended/extended_cmp_instruction.h"
+#include "../../asm/instruction/extended/extended_stack_instruction.h"
 #include "../../asm/instruction/extended/extended_syscall_instruction.h"
 
 #include "../grammar_utils.h"
@@ -226,6 +227,10 @@ struct asm_traverser{
 			return std::make_shared<elang::easm::instruction::ex_sar>(std::move(operands));
 		case elang::easm::instruction::id::cmp:
 			return std::make_shared<elang::easm::instruction::extended_cmp>(std::move(operands));
+		case elang::easm::instruction::id::push:
+			return std::make_shared<elang::easm::instruction::extended_push>(std::move(operands));
+		case elang::easm::instruction::id::pop:
+			return std::make_shared<elang::easm::instruction::extended_pop>(std::move(operands));
 		case elang::easm::instruction::id::int_:
 			return std::make_shared<elang::easm::instruction::extended_syscall>(std::move(operands));
 		default:
