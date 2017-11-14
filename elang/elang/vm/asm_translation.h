@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "../asm/instruction_section.h"
+#include "../grammar/grammar_source.h"
 
 namespace elang::easm::instruction{
 	class label_operand;
@@ -80,6 +81,10 @@ namespace elang::vm{
 		const std::string &start_label() const;
 
 		size_type stack_size() const;
+
+		static void translate(elang::grammar::source_base &source);
+
+		static void translate(const std::string &file_name, const std::string &path = "");
 
 	private:
 		label_type *active_label_;

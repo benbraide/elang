@@ -16,12 +16,21 @@ namespace elang::grammar{
 		open_failed,
 	};
 
+	class source_base{
+	public:
+		virtual ~source_base() = default;
+
+		virtual const char *begin() const = 0;
+
+		virtual const char *end() const = 0;
+	};
+
 	struct file_source_options{
 		std::string path;
 		std::string extension;
 	};
 
-	class file_source{
+	class file_source : public source_base{
 	public:
 		typedef source_error error_type;
 		typedef boost::iostreams::mapped_file mapped_file_type;
@@ -30,15 +39,17 @@ namespace elang::grammar{
 
 		explicit file_source(const std::string &file, const file_source_options &options = file_source_options{});
 
+		virtual ~file_source();
+
+		virtual const char *begin() const override;
+
+		virtual const char *end() const override;
+
 		void open(std::string file);
 
 		void close();
 
 		bool is_open() const;
-
-		const char *begin() const;
-
-		const char *end() const;
 
 	private:
 		file_source_options options_;

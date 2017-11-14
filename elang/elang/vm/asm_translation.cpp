@@ -1,4 +1,6 @@
 #include "../asm/instruction_operand/label_instruction_operand.h"
+#include "../grammar/parser/asm_parser.h"
+
 #include "asm_translation.h"
 
 elang::vm::asm_translation::asm_translation()
@@ -66,9 +68,11 @@ void elang::vm::asm_translation::add(label_type &label){
 }
 
 void elang::vm::asm_translation::remove(label_operand_type &label_op){
-	auto entry = std::find(label_operand_list_.begin(), label_operand_list_.end(), &label_op);
-	if (entry != label_operand_list_.end())
-		label_operand_list_.erase(entry);
+	if (!label_operand_list_.empty()){
+		auto entry = std::find(label_operand_list_.begin(), label_operand_list_.end(), &label_op);
+		if (entry != label_operand_list_.end())
+			label_operand_list_.erase(entry);
+	}
 }
 
 void elang::vm::asm_translation::add(label_operand_type &label_op){
@@ -158,4 +162,27 @@ const std::string &elang::vm::asm_translation::start_label() const{
 
 elang::vm::asm_translation::size_type elang::vm::asm_translation::stack_size() const{
 	return stack_size_;
+}
+
+void elang::vm::asm_translation::translate(elang::grammar::source_base &source){
+	namespace x3 = boost::spirit::x3;
+	namespace ast = elang::grammar::ast;
+	namespace parser = elang::grammar::parser;
+
+	machine::boot();//Perform necessary startup
+
+	ast::asm_instruction_set instruction_set;
+	x3::phrase_parse(source.begin(), source.end(), parser::asm_instruction_set, parser::asm_skip, instruction_set);
+	ast::asm_traverser::translate(instruction_set);
+
+	machine::asm_translation.bundle();
+	//machine::asm_translation.print(machine::out_writer);
+
+	machine::run();
+	machine::shutdown(false);//Perform necessary cleanup
+}
+
+void elang::vm::asm_translation::translate(const std::string &file_name, const std::string &path){
+	elang::grammar::file_source source(file_name, elang::grammar::file_source_options{ (path.empty() ? "test/asm" : path), "easm" });
+	translate(source);
 }

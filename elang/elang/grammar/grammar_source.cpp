@@ -8,6 +8,18 @@ elang::grammar::file_source::file_source(const std::string &file, const file_sou
 	open(file);
 }
 
+elang::grammar::file_source::~file_source(){
+	close();
+}
+
+const char *elang::grammar::file_source::begin() const{
+	return buffer_.const_begin();
+}
+
+const char *elang::grammar::file_source::end() const{
+	return buffer_.const_end();
+}
+
 void elang::grammar::file_source::open(std::string file){
 	if (buffer_.is_open())
 		throw error_type::already_opened;
@@ -34,12 +46,4 @@ void elang::grammar::file_source::close(){
 
 bool elang::grammar::file_source::is_open() const{
 	return buffer_.is_open();
-}
-
-const char *elang::grammar::file_source::begin() const{
-	return buffer_.const_begin();
-}
-
-const char *elang::grammar::file_source::end() const{
-	return buffer_.const_end();
 }
