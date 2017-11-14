@@ -8,6 +8,9 @@
 #include <shared_mutex>
 #include <unordered_map>
 
+#include "../common/output_writer.h"
+#include "../common/input_reader.h"
+
 #include "memory_error.h"
 #include "memory_block.h"
 
@@ -20,6 +23,9 @@ namespace elang::memory{
 		typedef block_type::uint64_type uint64_type;
 		typedef block_type::size_type size_type;
 		typedef block_type::data_type data_type;
+
+		typedef elang::common::output_writer output_writer_type;
+		typedef elang::common::input_reader input_reader_type;
 
 		struct range_type{
 			uint64_type from;
@@ -68,6 +74,8 @@ namespace elang::memory{
 
 		void write(uint64_type destination, const char *source, size_type size);
 
+		void write(uint64_type destination, input_reader_type &source, size_type count);
+
 		template <typename target_type>
 		target_type read(uint64_type source){
 			auto value = target_type();
@@ -76,6 +84,8 @@ namespace elang::memory{
 		}
 
 		void read(uint64_type source, char *destination, size_type size);
+
+		void read(uint64_type source, output_writer_type &destination, size_type count);
 
 		block_type *find(uint64_type address);
 
@@ -104,7 +114,11 @@ namespace elang::memory{
 
 		void write_(uint64_type destination, const char *source, size_type size, bool is_array);
 
+		void write_(uint64_type destination, input_reader_type &source, size_type count);
+
 		void read_(uint64_type source, char *destination, size_type size);
+
+		void read_(uint64_type source, output_writer_type &destination, size_type count);
 
 		map_iterator_type find_raw_(uint64_type address);
 

@@ -65,9 +65,19 @@ void elang::memory::manager::write(uint64_type destination, const char *source, 
 	write_(destination, source, size, true);
 }
 
+void elang::memory::manager::write(uint64_type destination, input_reader_type &source, size_type count){
+	shared_lock_guard_type lock_guard(lock_);
+	write_(destination, source, count);
+}
+
 void elang::memory::manager::read(uint64_type source, char *destination, size_type size){
 	shared_lock_guard_type lock_guard(lock_);
 	read_(source, destination, size);
+}
+
+void elang::memory::manager::read(uint64_type source, output_writer_type &destination, size_type count){
+	shared_lock_guard_type lock_guard(lock_);
+	read_(source, destination, count);
 }
 
 elang::memory::manager::block_type *elang::memory::manager::find(uint64_type address){
@@ -315,16 +325,45 @@ void elang::memory::manager::write_(uint64_type destination, const char *source,
 			throw error_type::invalid_address;
 
 		min_size = (available_size < size) ? available_size : size;
-		if (is_array)
-			memcpy_s(block->data.get() + ptr_index, size, source, min_size);
+		if (is_array){
+			memcpy(block->data.get() + ptr_index, source, min_size);
+			source += min_size;//Advance source pointer
+		}
 		else//Set applicable
 			std::memset(block->data.get() + ptr_index, *source, min_size);
 
-		if (is_array)//Advance source pointer
-			source += min_size;
-
 		destination += min_size;
 		size -= min_size;
+	}
+}
+
+void elang::memory::manager::write_(uint64_type destination, input_reader_type &source, size_type count){
+	if (count == 0u)//Do nothing
+		return;
+
+	range_type range{ destination, (destination + (count - 1)) };
+	if (is_access_protected(range))
+		throw error_type::access_violation;
+
+	if (is_write_protected(range))
+		throw error_type::write_access_violation;
+
+	block_type *block = nullptr;
+	size_type available_size = 0u, min_size = 0u, ptr_index = 0u;
+
+	while (count > 0u){
+		if ((block = ((block == nullptr) ? find_nearest_(destination) : find_(destination))) != nullptr){//Valid block
+			ptr_index = static_cast<size_type>(destination - block->address);
+			available_size = (block->actual_size - ptr_index);
+		}
+		else//No next block
+			throw error_type::invalid_address;
+
+		min_size = (available_size < count) ? available_size : count;
+		source.read(block->data.get() + ptr_index, min_size);
+
+		destination += min_size;
+		count -= min_size;
 	}
 }
 
@@ -341,11 +380,31 @@ void elang::memory::manager::read_(uint64_type source, char *destination, size_t
 			throw error_type::invalid_address;
 
 		min_size = (available_size < size) ? available_size : size;
-		memcpy_s(destination, size, block->data.get(), min_size);//Read block
+		memcpy(destination, block->data.get(), min_size);//Read block
 
 		destination += min_size;
 		source += min_size;
 		size -= min_size;
+	}
+}
+
+void elang::memory::manager::read_(uint64_type source, output_writer_type &destination, size_type count){
+	block_type *block = nullptr;
+	size_type available_size = 0u, min_size = 0u, ptr_index = 0u;
+
+	while (count > 0u){
+		if ((block = (block == nullptr) ? find_nearest_(source) : find_(source)) != nullptr){//Valid block
+			ptr_index = static_cast<size_type>(source - block->address);
+			available_size = (block->actual_size - ptr_index);
+		}
+		else//No next block
+			throw error_type::invalid_address;
+
+		min_size = (available_size < count) ? available_size : count;
+		destination.write(block->data.get(), min_size);//Read block
+
+		source += min_size;
+		count -= min_size;
 	}
 }
 
