@@ -65,6 +65,10 @@ elang::vm::machine::ostream_output_writer_type elang::vm::machine::log_writer(st
 
 elang::vm::machine::ostream_output_writer_type *elang::vm::machine::current_writer = &out_writer;
 
+elang::vm::machine::istream_input_reader_type elang::vm::machine::in_reader(std::cin, std::wcin);
+
+elang::vm::machine::istream_input_reader_type *elang::vm::machine::current_reader = &in_reader;
+
 bool elang::vm::machine::running = false;
 
 thread_local bool elang::vm::machine::running_thread = false;

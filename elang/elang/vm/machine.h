@@ -4,6 +4,7 @@
 #define ELANG_MACHINE_H
 
 #include "../common/stream_output_writer.h"
+#include "../common/stream_input_reader.h"
 
 #include "../memory/memory_manager.h"
 
@@ -22,11 +23,13 @@ namespace elang::vm{
 
 	class machine{
 	public:
+		typedef machine_error error_type;
+
 		typedef unsigned __int64 uint64_type;
 		typedef std::size_t size_type;
 
-		typedef machine_error error_type;
 		typedef elang::common::stream_output_writer<std::ostream, std::wostream> ostream_output_writer_type;
+		typedef elang::common::stream_input_reader<std::istream, std::wistream> istream_input_reader_type;
 
 		typedef elang::vm::syscall_register_store syscall_register_store_type;
 		typedef elang::vm::compiler compiler_type;
@@ -68,6 +71,10 @@ namespace elang::vm{
 		static ostream_output_writer_type log_writer;
 
 		static ostream_output_writer_type *current_writer;
+
+		static istream_input_reader_type in_reader;
+
+		static istream_input_reader_type *current_reader;
 
 		static bool running;
 		static thread_local bool running_thread;
