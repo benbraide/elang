@@ -6,9 +6,17 @@ void elang::vm::syscall::entry(){
 	case code::exit:
 		exit();
 		break;
+	case code::read_char:
+		read(true);
+		break;
+	case code::write_char:
+		write(true);
+		break;
 	case code::read:
+		read(false);
 		break;
 	case code::write:
+		write(false);
 		break;
 	case code::open:
 		break;
@@ -21,4 +29,27 @@ void elang::vm::syscall::entry(){
 
 void elang::vm::syscall::exit(){
 	machine::shutdown(false);
+}
+
+void elang::vm::syscall::read(bool is_char){
+	if (!is_char){
+
+	}
+	else
+		elang::vm::machine::out_writer.write_char(static_cast<char>(machine::register_manager.find("rbx")->read_64bits()));
+}
+
+void elang::vm::syscall::write(bool is_char){
+	if (!is_char){//Write buffer
+		auto size = machine::register_manager.find("rcx")->read_64bits();
+		if (size == 0u)
+			return;
+
+		auto buffer = std::make_unique<char[]>(size);
+		machine::memory_manager.read(machine::register_manager.find("rbx")->read_64bits(), buffer.get(), size);
+
+		
+	}
+	else//Write char
+		elang::vm::machine::out_writer.write_char(static_cast<char>(machine::register_manager.find("rbx")->read_64bits()));
 }

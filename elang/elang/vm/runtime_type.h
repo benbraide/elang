@@ -32,13 +32,13 @@ namespace elang::vm{
 			return parent_;
 		}
 		
-		virtual void print(writer_type &writer, writer_type &wide_writer) const{
+		virtual void print(writer_type &writer) const{
 			if (parent_ != nullptr){
-				parent_->print(writer, wide_writer);
-				writer << ".";
+				parent_->print(writer);
+				writer.write(".");
 			}
 
-			writer << name_ << writer_type::manip_type::flush;
+			writer.write(name_);
 		}
 
 	protected:

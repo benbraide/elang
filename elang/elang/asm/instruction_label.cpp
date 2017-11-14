@@ -35,12 +35,12 @@ elang::easm::instruction_label *elang::easm::instruction_label::find(const std::
 	return ((parent_ == nullptr) ? nullptr : parent_->find(first, rest));
 }
 
-void elang::easm::instruction_label::print(writer_type &writer, writer_type &wide_writer) const{
+void elang::easm::instruction_label::print(writer_type &writer) const{
 	auto level_count = nested_level();
 	if (level_count > 0)//Write prefix
-		writer << std::string(level_count, '.');
+		writer.write(std::string(level_count, '.'));
 
-	writer << name_ << ":" << writer_type::manip_type::flush;
+	writer.write(name_).write(":").write(writer_type::manip_type::newline);
 }
 
 elang::easm::instruction_label *elang::easm::instruction_label::find_(string_list_iterator_type iter, string_list_iterator_type end) const{

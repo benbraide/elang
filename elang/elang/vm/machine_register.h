@@ -84,9 +84,7 @@ namespace elang::vm{
 
 		size_type size() const;
 
-		friend output_writer_type &operator <<(output_writer_type &writer, machine_register &reg){
-			return (writer << reg.name_);
-		}
+		void print(output_writer_type &writer);
 
 	protected:
 		void init_(size_type size, char *buffer);

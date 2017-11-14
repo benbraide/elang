@@ -43,10 +43,10 @@ namespace elang::easm::instruction{
 			value_->write_to_memory(buffer);
 		}
 
-		virtual void print(writer_type &writer, writer_type &wide_writer) const override{
-			writer << "(" << writer_type::manip_type::flush;
-			value_->print(writer, wide_writer);
-			writer << ")" << writer_type::manip_type::flush;
+		virtual void print(writer_type &writer) const override{
+			writer.write("(");
+			value_->print(writer);
+			writer.write(")");
 		}
 
 		virtual void update_constant_value_type(value_type_id_type id) override{

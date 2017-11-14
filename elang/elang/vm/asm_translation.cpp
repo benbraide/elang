@@ -135,11 +135,11 @@ elang::vm::asm_translation::uint64_type elang::vm::asm_translation::find_address
 	return static_cast<uint64_type>(-1);
 }
 
-void elang::vm::asm_translation::print(writer_type &writer, writer_type &wide_writer) const{
+void elang::vm::asm_translation::print(writer_type &writer) const{
 	for (auto id : section_order_){
 		auto entry = section_map_.find(id);
 		if (entry != section_map_.end())
-			entry->second->print(writer, wide_writer);
+			entry->second->print(writer);
 	}
 }
 

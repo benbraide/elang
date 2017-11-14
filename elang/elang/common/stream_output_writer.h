@@ -9,161 +9,182 @@
 #include "output_writer.h"
 
 namespace elang::common{
-	template <class stream_type, bool is_wide>
+	template <class stream_type, class wide_stream_type>
 	class stream_output_writer : public output_writer{
 	public:
 		typedef stream_type stream_type;
+		typedef wide_stream_type wide_stream_type;
 
-		explicit stream_output_writer(stream_type &stream)
-			: stream_(stream){}
+		typedef std::recursive_mutex lock_type;
+		typedef std::lock_guard<lock_type> guard_type;
 
-		virtual output_writer &operator <<(manip_type manip) override{
-			switch (manip){
-			case manip_type::flush:
-				stream_ << std::flush;
-				break;
-			case manip_type::newline:
-				stream_ << std::endl;
-				break;
-			default:
-				return output_writer::operator<<(manip);
+		stream_output_writer(stream_type &stream, wide_stream_type &wide_stream)
+			: stream_(stream), wide_stream_(wide_stream), states_(state_type::nil){}
+
+		virtual output_writer &begin() override{
+			lock_.lock();
+			return *this;
+		}
+
+		virtual output_writer &end() override{
+			write_(stream_, manip_type::flush, false);
+			write_(wide_stream_, manip_type::flush, true);
+			lock_.unlock();
+			return *this;
+		}
+
+		virtual output_writer &write(manip_type manip, bool wide = false) override{
+			for (auto flag = manip_type::flush; flag <= manip_type::newline; flag = static_cast<manip_type>(static_cast<unsigned int>(flag) + 1)){
+				if (!ELANG_IS(manip, flag))
+					continue;//Flag not specified
+
+				if (wide)
+					write_(wide_stream_, flag, wide);
+				else//Narrow
+					write_(stream_, flag, wide);
 			}
 
 			return *this;
 		}
 
-		virtual output_writer &operator <<(__int8 value) override{
-			return print_(value);
+		virtual output_writer &write_char(char value) override{
+			return write_(value);
 		}
 
-		virtual output_writer &operator <<(unsigned __int8 value) override{
-			return print_(value);
+		virtual output_writer &write_char(wchar_t value) override{
+			pre_write_(true);
+			wide_stream_ << value;
+			return *this;
 		}
 
-		virtual output_writer &operator <<(__int16 value) override{
-			return print_(value);
+		virtual output_writer &write(__int8 value) override{
+			return write_(value);
 		}
 
-		virtual output_writer &operator <<(unsigned __int16 value) override{
-			return print_(value);
+		virtual output_writer &write(unsigned __int8 value) override{
+			return write_(value);
 		}
 
-		virtual output_writer &operator <<(__int32 value) override{
-			return print_(value);
+		virtual output_writer &write(__int16 value) override{
+			return write_(value);
 		}
 
-		virtual output_writer &operator <<(unsigned __int32 value) override{
-			return print_(value);
+		virtual output_writer &write(unsigned __int16 value) override{
+			return write_(value);
 		}
 
-		virtual output_writer &operator <<(__int64 value) override{
-			return print_(value);
+		virtual output_writer &write(__int32 value) override{
+			return write_(value);
 		}
 
-		virtual output_writer &operator <<(unsigned __int64 value) override{
-			return print_(value);
+		virtual output_writer &write(unsigned __int32 value) override{
+			return write_(value);
 		}
 
-		virtual output_writer &operator <<(float value) override{
-			return print_(value);
+		virtual output_writer &write(__int64 value) override{
+			return write_(value);
 		}
 
-		virtual output_writer &operator <<(double value) override{
-			return print_(value);
+		virtual output_writer &write(unsigned __int64 value) override{
+			return write_(value);
 		}
 
-		virtual output_writer &operator <<(long double value) override{
-			return print_(value);
+		virtual output_writer &write(float value) override{
+			return write_(value);
 		}
 
-		virtual output_writer &operator <<(const char *value) override{
-			return print_string_(value, std::bool_constant<is_wide>());
+		virtual output_writer &write(double value) override{
+			return write_(value);
 		}
 
-		virtual output_writer &operator <<(const wchar_t *value) override{
-			return print_wstring_(value, std::bool_constant<is_wide>());
+		virtual output_writer &write(long double value) override{
+			return write_(value);
 		}
 
-		virtual output_writer &operator <<(const std::string &value) override{
-			return print_string_(value, std::bool_constant<is_wide>());
+		virtual output_writer &write(const char *value, size_type count = 0u) override{
+			pre_write_(false);
+			if (count == 0u)
+				stream_ << value;
+			else//Write 'count' chars
+				stream_.write(value, count);
+			return *this;
 		}
 
-		virtual output_writer &operator <<(const std::wstring &value) override{
-			return print_wstring_(value, std::bool_constant<is_wide>());
+		virtual output_writer &write(const wchar_t *value, size_type count = 0u) override{
+			pre_write_(true);
+			if (count == 0u)
+				wide_stream_ << value;
+			else//Write 'count' chars
+				wide_stream_.write(value, count);
+			return *this;
+		}
+
+		virtual output_writer &write(const std::string &value) override{
+			pre_write_(false);
+			stream_ << value;
+			return *this;
+		}
+
+		virtual output_writer &write(const std::wstring &value) override{
+			pre_write_(true);
+			wide_stream_ << value;
+			return *this;
 		}
 
 	protected:
-		virtual stream_type &pre_write_and_return_stream_(){
-			pre_write_();
-			return stream_;
+		void pre_write_(bool wide){
+			if (wide){
+				if (ELANG_IS(states_, state_type::narrow_written)){
+					write(manip_type::flush, false);
+					ELANG_REMOVE(states_, state_type::narrow_written);
+				}
+
+				ELANG_SET(states_, state_type::wide_written);
+			}
+			else{//Writing narrow
+				if (ELANG_IS(states_, state_type::wide_written)){
+					write(manip_type::flush, true);
+					ELANG_REMOVE(states_, state_type::wide_written);
+				}
+
+				ELANG_SET(states_, state_type::narrow_written);
+			}
+		}
+
+		template <typename stream_type>
+		void write_(stream_type &stream, manip_type flag, bool wide){
+			switch (flag){
+			case manip_type::flush:
+				stream_ << std::flush;
+				if (wide)
+					ELANG_REMOVE(states_, state_type::wide_written);
+				else//Narrow
+					ELANG_REMOVE(states_, state_type::narrow_written);
+				break;
+			case manip_type::newline:
+				stream_ << std::endl;
+				if (wide)
+					ELANG_REMOVE(states_, state_type::wide_written);
+				else//Narrow
+					ELANG_REMOVE(states_, state_type::narrow_written);
+				break;
+			default:
+				break;
+			}
 		}
 
 		template <typename value_type>
-		output_writer &print_string_(value_type value, std::true_type){
-			throw error_type::cannot_write_narrow;
-		}
-
-		template <typename value_type>
-		output_writer &print_string_(value_type value, std::false_type){
-			return print_(value);
-		}
-
-		template <typename value_type>
-		output_writer &print_wstring_(value_type value, std::true_type){
-			return print_(value);
-		}
-
-		template <typename value_type>
-		output_writer &print_wstring_(value_type value, std::false_type){
-			throw error_type::cannot_write_wide;
-		}
-
-		template <typename value_type>
-		output_writer &print_(value_type value){
-			pre_write_and_return_stream_() << value;
+		output_writer &write_(value_type value){
+			pre_write_(false);
+			stream_ << value;
 			return *this;
 		}
 
 		stream_type &stream_;
+		wide_stream_type &wide_stream_;
+		state_type states_;
+		lock_type lock_;
 	};
-
-	using ostream_output_writer_type = stream_output_writer<std::ostream, false>;
-	using wostream_output_writer_type = stream_output_writer<std::wostream, true>;
-
-	ostream_output_writer_type out_writer(std::cout);
-	ostream_output_writer_type err_writer(std::cerr);
-	ostream_output_writer_type log_writer(std::clog);
-
-	wostream_output_writer_type wout_writer(std::wcout);
-	wostream_output_writer_type werr_writer(std::wcerr);
-	wostream_output_writer_type wlog_writer(std::wclog);
-
-	template <bool is_wide>
-	struct file_stream_output_writer_handle_type{
-		typedef std::ofstream type;
-	};
-
-	template <>
-	struct file_stream_output_writer_handle_type<true>{
-		typedef std::wofstream type;
-	};
-
-	template <bool is_wide>
-	class basic_file_stream_output_writer : public stream_output_writer<typename file_stream_output_writer_handle_type<is_wide>::type, is_wide>{
-	public:
-		typedef typename file_stream_output_writer_handle_type<is_wide>::type handle_type;
-		typedef stream_output_writer<handle_type, is_wide> base_type;
-
-		template <typename... args_types>
-		explicit basic_file_stream_output_writer(args_types &&... args)
-			: base_type(handle_), handle_(std::forward<args_types>(args)...){}
-
-	protected:
-		handle_type handle_;
-	};
-
-	using file_stream_output_writer = basic_file_stream_output_writer<false>;
-	using wfile_stream_output_writer = basic_file_stream_output_writer<true>;
 }
 
 #endif /* !ELANG_STREAM_OUTPUT_WRITER_H */

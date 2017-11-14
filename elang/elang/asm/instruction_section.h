@@ -38,38 +38,35 @@ namespace elang::easm{
 		typedef std::vector<std::string> string_list_type;
 
 		struct printer{
-			printer(writer_type &writer, writer_type &wide_writer)
-				: writer_(&writer), wide_writer_(&wide_writer){}
+			explicit printer(writer_type &writer)
+				: writer_(&writer){}
 
 			void operator ()(const instruction_type *instruction) const{
-				*writer_ << std::string(2, ' ') << writer_type::manip_type::flush;
-				instruction->print(*writer_, *wide_writer_);
-				*writer_ << writer_type::manip_type::newline;
+				writer_->write("  ");
+				instruction->print(*writer_);
 			}
 
 			void operator ()(const instruction_label::ptr_type label) const{
-				label->print(*writer_, *wide_writer_);
-				*writer_ << writer_type::manip_type::newline;
+				label->print(*writer_);
 			}
 
 			void operator ()(const std::string &start_label) const{
-				*writer_ << std::string(2, ' ') << ".start_label " << start_label << writer_type::manip_type::newline;
+				writer_->write("  .start_label ").write(start_label).write(writer_type::manip_type::newline);
 			}
 
 			void operator ()(size_type stack_size) const{
-				*writer_ << std::string(2, ' ') << ".stack_size " << stack_size << writer_type::manip_type::newline;
+				writer_->write("  .stack_size ").write(stack_size).write(writer_type::manip_type::newline);
 			}
 
 		private:
 			writer_type *writer_;
-			writer_type *wide_writer_;
 		};
 
 		explicit instruction_section_base(id_type id);
 
 		virtual id_type id() const;
 
-		virtual void print(writer_type &writer, writer_type &wide_writer) const;
+		virtual void print(writer_type &writer) const;
 
 		virtual void set_seg_offset(uint64_type value);
 
@@ -96,7 +93,7 @@ namespace elang::easm{
 		virtual uint64_type find_address(const std::string &first, const std::vector<std::string> &rest) const;
 
 	protected:
-		virtual void print_content_(writer_type &writer, writer_type &wide_writer) const;
+		virtual void print_content_(writer_type &writer) const;
 
 		virtual instruction_type *find_(uint64_type offset) const;
 
@@ -131,7 +128,7 @@ namespace elang::easm{
 		virtual uint64_type find_address(const std::string &first, const std::vector<std::string> &rest) const;
 
 	protected:
-		virtual void print_content_(writer_type &writer, writer_type &wide_writer) const override;
+		virtual void print_content_(writer_type &writer) const override;
 
 		virtual instruction_type *find_(uint64_type offset) const override;
 

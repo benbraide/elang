@@ -32,7 +32,7 @@ namespace elang::easm{
 
 		instruction_label *find(const std::string &first, const std::vector<std::string> &rest) const;
 
-		void print(writer_type &writer, writer_type &wide_writer) const;
+		void print(writer_type &writer) const;
 
 	protected:
 		instruction_label *find_(string_list_iterator_type iter, string_list_iterator_type end) const;

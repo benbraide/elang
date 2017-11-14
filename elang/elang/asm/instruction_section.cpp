@@ -8,26 +8,29 @@ elang::easm::instruction_section_base::id_type elang::easm::instruction_section_
 	return id_;
 }
 
-void elang::easm::instruction_section_base::print(writer_type &writer, writer_type &wide_writer) const{
-	writer << "section .";
+void elang::easm::instruction_section_base::print(writer_type &writer) const{
+	writer.write("section .");
 	switch (id_){
 	case id_type::rodata:
-		writer << "rodata" << writer_type::manip_type::newline;
+		writer.write("rodata").write(writer_type::manip_type::newline);
 		break;
 	case id_type::data:
-		writer << "data" << writer_type::manip_type::newline;
+		writer.write("data").write(writer_type::manip_type::newline);
 		break;
 	case id_type::text:
-		writer << "text" << writer_type::manip_type::newline;
+		writer.write("text").write(writer_type::manip_type::newline);
 		break;
 	case id_type::type:
-		writer << "type" << writer_type::manip_type::newline;
+		writer.write("type").write(writer_type::manip_type::newline);
+		break;
+	case id_type::meta:
+		writer.write("meta").write(writer_type::manip_type::newline);
 		break;
 	default:
 		break;
 	}
 
-	print_content_(writer, wide_writer);
+	print_content_(writer);
 }
 
 void elang::easm::instruction_section_base::set_seg_offset(uint64_type value){
@@ -80,7 +83,7 @@ elang::easm::instruction_section_base::uint64_type elang::easm::instruction_sect
 	throw error_type::bad_operation;
 }
 
-void elang::easm::instruction_section_base::print_content_(writer_type &writer, writer_type &wide_writer) const{}
+void elang::easm::instruction_section_base::print_content_(writer_type &writer) const{}
 
 elang::easm::instruction_section_base::instruction_type *elang::easm::instruction_section_base::find_(uint64_type offset) const{
 	throw error_type::bad_operation;
@@ -152,8 +155,8 @@ elang::easm::instruction_section_base::uint64_type elang::easm::instruction_sect
 	return static_cast<uint64_type>(-1);
 }
 
-void elang::easm::instruction_section::print_content_(writer_type &writer, writer_type &wide_writer) const{
-	printer printer_inst(writer, wide_writer);
+void elang::easm::instruction_section::print_content_(writer_type &writer) const{
+	printer printer_inst(writer);
 	for (auto &entry : order_list_)//Print entries
 		std::visit(printer_inst, entry);
 }

@@ -57,6 +57,14 @@ elang::vm::machine::size_type elang::vm::machine::stack_size = (1024 * 1024);//D
 
 const std::string elang::vm::machine::start_label = "_start";
 
+elang::vm::machine::ostream_output_writer_type elang::vm::machine::out_writer(std::cout, std::wcout);
+
+elang::vm::machine::ostream_output_writer_type elang::vm::machine::err_writer(std::cerr, std::wcerr);
+
+elang::vm::machine::ostream_output_writer_type elang::vm::machine::log_writer(std::clog, std::wclog);
+
+elang::vm::machine::ostream_output_writer_type *elang::vm::machine::current_writer = &out_writer;
+
 bool elang::vm::machine::running = false;
 
 thread_local bool elang::vm::machine::running_thread = false;

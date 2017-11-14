@@ -44,10 +44,10 @@ namespace elang::easm::instruction{
 			eval_()->write_to_memory(buffer);
 		}
 
-		virtual void print(writer_type &writer, writer_type &wide_writer) const override{
-			left_->print(writer, wide_writer);
-			writer << " " << instruction_operator_utils::instruction_operator_id_to_string(op_) << " " << writer_type::manip_type::flush;
-			right_->print(writer, wide_writer);
+		virtual void print(writer_type &writer) const override{
+			left_->print(writer);
+			writer.write(" ").write(instruction_operator_utils::instruction_operator_id_to_string(op_)).write(" ");
+			right_->print(writer);
 		}
 
 		virtual void update_constant_value_type(value_type_id_type id) override{

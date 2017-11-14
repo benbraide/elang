@@ -33,9 +33,7 @@ namespace elang::easm::instruction{
 
 		virtual id_type id() const = 0;
 
-		virtual void apply_value_type(value_type_id_type type){
-			throw error_type::bad_operand;
-		}
+		virtual void apply_value_type(value_type_id_type type){}
 
 		virtual value_type_id_type value_type() const = 0;
 
@@ -65,7 +63,7 @@ namespace elang::easm::instruction{
 			return 0;
 		}
 
-		virtual void print(writer_type &writer, writer_type &wide_writer) const = 0;
+		virtual void print(writer_type &writer) const = 0;
 
 		virtual void update_constant_value_type(value_type_id_type id){}
 

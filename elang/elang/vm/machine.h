@@ -3,6 +3,8 @@
 #ifndef ELANG_MACHINE_H
 #define ELANG_MACHINE_H
 
+#include "../common/stream_output_writer.h"
+
 #include "../memory/memory_manager.h"
 
 #include "runtime.h"
@@ -24,6 +26,7 @@ namespace elang::vm{
 		typedef std::size_t size_type;
 
 		typedef machine_error error_type;
+		typedef elang::common::stream_output_writer<std::ostream, std::wostream> ostream_output_writer_type;
 
 		typedef elang::vm::syscall_register_store syscall_register_store_type;
 		typedef elang::vm::compiler compiler_type;
@@ -59,6 +62,12 @@ namespace elang::vm{
 
 		static size_type stack_size;
 		static const std::string start_label;
+
+		static ostream_output_writer_type out_writer;
+		static ostream_output_writer_type err_writer;
+		static ostream_output_writer_type log_writer;
+
+		static ostream_output_writer_type *current_writer;
 
 		static bool running;
 		static thread_local bool running_thread;

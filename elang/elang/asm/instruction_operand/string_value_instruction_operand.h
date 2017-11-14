@@ -75,8 +75,8 @@ namespace elang::easm::instruction{
 				memcpy(buffer, value_.data(), value_.size());
 		}
 
-		virtual void print(writer_type &writer, writer_type &wide_writer) const override{
-			writer << "'" << original_ << "'" << writer_type::manip_type::flush;
+		virtual void print(writer_type &writer) const override{
+			writer.write("'").write(original_).write("'");
 		}
 
 		virtual void update_constant_value_type(value_type_id_type id) override{

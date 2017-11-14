@@ -19,9 +19,9 @@ namespace elang::easm::instruction{
 
 		virtual void execute() const override{}
 
-		virtual void print(writer_type &writer, writer_type &wide_writer) const override{
-			writer << name_ << " " << count_ << " " << writer_type::manip_type::flush;
-			value_->print(writer, wide_writer);
+		virtual void print(writer_type &writer) const override{
+			writer.write(name_).write(" ").write(count_).write(" ");
+			value_->print(writer);
 		}
 
 		virtual unsigned int count() const{

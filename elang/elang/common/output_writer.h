@@ -7,87 +7,71 @@
 #include <string>
 #include <memory>
 
-namespace elang::common{
-	enum class output_writer_manip{
-		nil,
-		begin,
-		end,
-		flush,
-		newline,
-	};
+#include "macro.h"
 
-	enum class output_writer_error{
-		nil,
-		cannot_write_narrow,
-		cannot_write_wide,
+namespace elang::common{
+	enum class output_writer_manip : unsigned int{
+		nil					= (0 << 0x0000),
+		flush				= (1 << 0x0000),
+		newline				= (1 << 0x0001),
 	};
 
 	class output_writer{
 	public:
 		typedef output_writer_manip manip_type;
-		typedef output_writer_error error_type;
+		typedef std::size_t size_type;
 
-		typedef std::mutex lock_type;
-		typedef std::shared_ptr<lock_type> lock_ptr_type;
+		enum class state_type : unsigned int{
+			nil					= (0 << 0x0000),
+			narrow_written		= (1 << 0x0000),
+			wide_written		= (1 << 0x0001),
+		};
 
 		virtual ~output_writer() = default;
 
-		virtual output_writer &operator <<(manip_type manip){
-			switch (manip){
-			case manip_type::begin:
-				get_lock_().lock();
-				break;
-			case manip_type::end:
-				get_lock_().unlock();
-				break;
-			default:
-				break;
-			}
+		virtual output_writer &begin() = 0;
 
-			return *this;
-		}
+		virtual output_writer &end() = 0;
 
-		virtual output_writer &operator <<(__int8 value) = 0;
+		virtual output_writer &write(manip_type manip, bool wide = false) = 0;
 
-		virtual output_writer &operator <<(unsigned __int8 value) = 0;
+		virtual output_writer &write_char(char value) = 0;
 
-		virtual output_writer &operator <<(__int16 value) = 0;
+		virtual output_writer &write_char(wchar_t value) = 0;
 
-		virtual output_writer &operator <<(unsigned __int16 value) = 0;
+		virtual output_writer &write(__int8 value) = 0;
 
-		virtual output_writer &operator <<(__int32 value) = 0;
+		virtual output_writer &write(unsigned __int8 value) = 0;
 
-		virtual output_writer &operator <<(unsigned __int32 value) = 0;
+		virtual output_writer &write(__int16 value) = 0;
 
-		virtual output_writer &operator <<(__int64 value) = 0;
+		virtual output_writer &write(unsigned __int16 value) = 0;
 
-		virtual output_writer &operator <<(unsigned __int64 value) = 0;
+		virtual output_writer &write(__int32 value) = 0;
 
-		virtual output_writer &operator <<(float value) = 0;
+		virtual output_writer &write(unsigned __int32 value) = 0;
 
-		virtual output_writer &operator <<(double value) = 0;
+		virtual output_writer &write(__int64 value) = 0;
 
-		virtual output_writer &operator <<(long double value) = 0;
+		virtual output_writer &write(unsigned __int64 value) = 0;
 
-		virtual output_writer &operator <<(const char *value) = 0;
+		virtual output_writer &write(float value) = 0;
 
-		virtual output_writer &operator <<(const wchar_t *value) = 0;
+		virtual output_writer &write(double value) = 0;
 
-		virtual output_writer &operator <<(const std::string &value) = 0;
+		virtual output_writer &write(long double value) = 0;
 
-		virtual output_writer &operator <<(const std::wstring &value) = 0;
+		virtual output_writer &write(const char *value, size_type count = 0u) = 0;
 
-	protected:
-		virtual void pre_write_(){}
+		virtual output_writer &write(const wchar_t *value, size_type count = 0u) = 0;
 
-		lock_type &get_lock_(){
-			if (lock_ == nullptr)
-				lock_ = std::make_shared<std::mutex>();
-			return *lock_;
-		}
+		virtual output_writer &write(const std::string &value) = 0;
 
-		lock_ptr_type lock_;
+		virtual output_writer &write(const std::wstring &value) = 0;
 	};
+
+	ELANG_MAKE_OPERATORS(output_writer_manip);
+	ELANG_MAKE_OPERATORS(output_writer::state_type);
 }
 
 #endif /* !ELANG_OUTPUT_WRITER_H */

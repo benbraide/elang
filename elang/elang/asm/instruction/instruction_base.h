@@ -67,18 +67,23 @@ namespace elang::easm::instruction{
 
 		virtual void execute() const = 0;
 
-		virtual void print(writer_type &writer, writer_type &wide_writer) const{
-			writer << name_ << " " << writer_type::manip_type::flush;
+		virtual void print(writer_type &writer) const{
+			if (!operands_.empty()){
+				writer.write(name_).write(" ");
+				auto is_first = true;
+				for (auto item : operands_){
+					if (is_first)//No delimiter needed
+						is_first = false;
+					else//Print delimiter
+						writer.write(", ");
 
-			auto is_first = true;
-			for (auto item : operands_){
-				if (is_first)//No delimiter needed
-					is_first = false;
-				else//Print delimiter
-					writer << ", " << writer_type::manip_type::flush;
-
-				item->print(writer, wide_writer);
+					item->print(writer);
+				}
 			}
+			else//No operands
+				writer.write(name_);
+
+			writer.write(writer_type::manip_type::newline);
 		}
 
 	protected:

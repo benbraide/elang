@@ -16,7 +16,7 @@ namespace elang::easm::instruction{
 
 		typedef std::vector<std::string> string_list_type;
 
-		label_operand(const std::string &first, const string_list_type &rest)
+		explicit label_operand(const std::string &first, const string_list_type &rest = string_list_type{})
 			: base_type(value_type_id_type::qword), first_(first), rest_(rest), label_(nullptr){
 			init_();
 		}
@@ -38,14 +38,12 @@ namespace elang::easm::instruction{
 			throw error_type::bad_operation;
 		}
 
-		virtual void print(writer_type &writer, writer_type &wide_writer) const override{
+		virtual void print(writer_type &writer) const override{
 			if (!first_.empty())
-				writer << first_;
+				writer.write(first_);
 
 			for (auto &entry : rest_)
-				writer << "." << entry;
-
-			writer << writer_type::manip_type::flush;
+				writer.write(".").write(entry);
 		}
 
 		virtual void update_constant_value_type(value_type_id_type id) override{}

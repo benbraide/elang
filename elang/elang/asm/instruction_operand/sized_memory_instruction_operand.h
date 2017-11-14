@@ -39,11 +39,11 @@ namespace elang::easm::instruction{
 			return value_->read<uint64_type>();
 		}
 
-		virtual void print(writer_type &writer, writer_type &wide_writer) const override{
-			writer << "[" << writer_type::manip_type::flush;
-			value_->print(writer, wide_writer);
-			writer << "]" << writer_type::manip_type::flush;
-			type_->print(writer, wide_writer);
+		virtual void print(writer_type &writer) const override{
+			writer.write("[");
+			value_->print(writer);
+			writer.write("]");
+			type_->print(writer);
 		}
 
 	protected:

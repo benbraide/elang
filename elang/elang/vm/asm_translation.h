@@ -73,7 +73,7 @@ namespace elang::vm{
 
 		uint64_type find_address(const std::string &first, const std::vector<std::string> &rest) const;
 
-		void print(writer_type &writer, writer_type &wide_writer) const;
+		void print(writer_type &writer) const;
 
 		const std::string &start_label() const;
 

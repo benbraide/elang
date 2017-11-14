@@ -330,7 +330,7 @@ struct asm_traverser{
 
 		auto reg = elang::vm::machine::register_manager.find(id);
 		if (reg == nullptr)//Label operand
-			return std::make_shared<elang::easm::instruction::label_operand>(id, std::vector<std::string>{});
+			return std::make_shared<elang::easm::instruction::label_operand>(id);
 
 		return std::make_shared<elang::easm::instruction::register_operand>(*reg);
 	}

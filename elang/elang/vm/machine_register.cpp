@@ -70,6 +70,10 @@ elang::vm::machine_register::size_type elang::vm::machine_register::size() const
 	return size_;
 }
 
+void elang::vm::machine_register::print(output_writer_type &writer){
+	writer.write(name_);
+}
+
 void elang::vm::machine_register::init_(size_type size, char *buffer){
 	size_ = size;
 	buffer_ = buffer;
