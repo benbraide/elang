@@ -92,9 +92,7 @@ elang::easm::instruction_section_base::instruction_type *elang::easm::instructio
 elang::easm::instruction_section::instruction_section(id_type id)
 	: instruction_section_base(id){}
 
-void elang::easm::instruction_section::set_seg_offset(uint64_type value){
-	instruction_section_base::set_seg_offset(value);
-
+void elang::easm::instruction_section::write_memory() const{
 	auto seg_offset = seg_offset_;
 	for (auto &entry : order_list_){//Write instructions to memory
 		if (std::holds_alternative<instruction_type *>(entry))
@@ -118,9 +116,10 @@ void elang::easm::instruction_section::add(instruction_ptr_type instruction){
 	auto times = dynamic_cast<instruction::times *>(instruction.get());
 	if (times != nullptr){//Repeat instruction
 		auto value = times->value();
+		auto instruction_bytes = value->instruction_bytes();
 		for (auto count = times->count(); count > 0u; --count){
 			instruction_list_[offset_] = value;
-			offset_ += value->instruction_bytes();
+			offset_ += instruction_bytes;
 		}
 	}
 	else{//Normal instruction

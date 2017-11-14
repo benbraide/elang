@@ -58,11 +58,10 @@ namespace elang::easm::instruction{
 			auto data = block->data.get();
 
 			for (auto operand : operands_){//Write operands
-				operand->write_to_memory(data);
+				operand->write_to_memory(data, address);
+				address += operand->instruction_bytes();
 				data += operand->instruction_bytes();
 			}
-
-			address += block->actual_size;
 		}
 
 		virtual void execute_and_update_instruction_pointer(register_type &instruction_pointer) const override{

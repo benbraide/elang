@@ -39,8 +39,8 @@ namespace elang::easm::instruction{
 			return value_->read_64bits();
 		}
 
-		virtual void write_to_memory(char *buffer) const override{
-			value_->write_to_memory(buffer);
+		virtual void write_to_memory(char *buffer, uint64_type offset) const override{
+			value_->write_to_memory(buffer, offset);
 		}
 
 		virtual void print(writer_type &writer) const override{

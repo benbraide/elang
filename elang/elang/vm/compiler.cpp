@@ -6,11 +6,11 @@
 
 elang::vm::compiler::compiler()
 	: register_list_(4), expression_type_(machine_value_type_id::unknown), label_count_(0){
-	section_map_[section_id_type::meta] = std::make_shared<section_type>(section_id_type::meta);
-	section_map_[section_id_type::rodata] = std::make_shared<section_type>(section_id_type::rodata);
-	section_map_[section_id_type::data] = std::make_shared<section_type>(section_id_type::data);
-	section_map_[section_id_type::type] = std::make_shared<section_type>(section_id_type::type);
-	section_map_[section_id_type::text] = std::make_shared<section_type>(section_id_type::text);
+	section_map_[section_id_type::meta] = std::make_shared<elang::easm::instruction_section>(section_id_type::meta);
+	section_map_[section_id_type::rodata] = std::make_shared<elang::easm::instruction_section>(section_id_type::rodata);
+	section_map_[section_id_type::data] = std::make_shared<elang::easm::instruction_section>(section_id_type::data);
+	section_map_[section_id_type::type] = std::make_shared<elang::easm::instruction_section>(section_id_type::type);
+	section_map_[section_id_type::text] = std::make_shared<elang::easm::instruction_section>(section_id_type::text);
 
 	info_ = info_type{ std::make_shared<namespace_symbol_entry>("_G", nullptr, symbol_entry_attribute::nil) };
 	info_.current_context.value = info_.global_context.get();

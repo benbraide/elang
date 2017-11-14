@@ -68,6 +68,8 @@ namespace elang::easm{
 
 		virtual void print(writer_type &writer) const;
 
+		virtual void write_memory() const = 0;
+
 		virtual void set_seg_offset(uint64_type value);
 
 		virtual uint64_type get_seg_offset() const;
@@ -115,7 +117,7 @@ namespace elang::easm{
 
 		explicit instruction_section(id_type id);
 
-		virtual void set_seg_offset(uint64_type value) override;
+		virtual void write_memory() const override;
 
 		virtual instruction_label *add(instruction_label *parent, const std::string &label) override;
 

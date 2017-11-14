@@ -11,6 +11,7 @@ namespace elang::easm::instruction{
 		memory,
 		expression,
 		label,
+		offset,
 	};
 }
 

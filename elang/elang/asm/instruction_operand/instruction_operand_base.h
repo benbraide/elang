@@ -41,6 +41,10 @@ namespace elang::easm::instruction{
 			return false;
 		}
 
+		virtual bool is_float() const{
+			return false;
+		}
+
 		virtual size_type instruction_bytes() const{
 			switch (value_type()){
 			case value_type_id_type::byte:
@@ -103,9 +107,11 @@ namespace elang::easm::instruction{
 			throw error_type::bad_operation;
 		}
 
-		virtual void write_to_memory(char *buffer) const{
+		virtual void write_to_memory(char *buffer, uint64_type offset) const{
 			throw error_type::bad_operation;
 		}
+
+		virtual void pre_write_to_memory(uint64_type offset) const{}
 	};
 }
 

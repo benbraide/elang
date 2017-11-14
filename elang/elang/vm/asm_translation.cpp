@@ -22,6 +22,9 @@ void elang::vm::asm_translation::bundle(){
 
 	for (auto entry : label_operand_list_)
 		entry->resolve(*this);//Resolve unresolved labels
+
+	for (auto section : section_map_)
+		section.second->write_memory();
 }
 
 void elang::vm::asm_translation::start_label(const std::string &value){
@@ -60,6 +63,12 @@ void elang::vm::asm_translation::add(uint_type nested_level, const std::string &
 
 void elang::vm::asm_translation::add(label_type &label){
 	active_label_ = &label;
+}
+
+void elang::vm::asm_translation::remove(label_operand_type &label_op){
+	auto entry = std::find(label_operand_list_.begin(), label_operand_list_.end(), &label_op);
+	if (entry != label_operand_list_.end())
+		label_operand_list_.erase(entry);
 }
 
 void elang::vm::asm_translation::add(label_operand_type &label_op){

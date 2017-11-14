@@ -26,15 +26,19 @@ namespace elang::easm::instruction{
 			init_();
 		}
 
+		virtual ~label_operand(){
+			elang::vm::machine::asm_translation.remove(*this);
+		}
+
 		virtual id_type id() const override{
 			return id_type::label;
 		}
 
-		virtual uint64_type read_64bits() const override{
-			return 0;
+		virtual void apply_value_type(value_type_id_type type) override{
+			value_type_ = type;
 		}
 
-		virtual void write_to_memory(char *buffer) const override{
+		virtual void write_to_memory(char *buffer, uint64_type offset) const override{
 			throw error_type::bad_operation;
 		}
 

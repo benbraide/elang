@@ -53,6 +53,8 @@ namespace elang::vm{
 
 		void add(label_type &label);
 
+		void remove(label_operand_type &label_op);
+
 		void add(label_operand_type &label_op);
 
 		void add(instruction_ptr_type instruction);

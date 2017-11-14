@@ -34,6 +34,10 @@ namespace elang::easm::instruction{
 			return true;
 		}
 
+		virtual bool is_float() const override{
+			return std::is_floating_point<operand_value_type>::value;
+		}
+
 		virtual void read(char *buffer, size_type size, numeric_type_id_type type_id) const override{
 			switch (type_id){
 			case numeric_type_id_type::int8:
@@ -79,25 +83,25 @@ namespace elang::easm::instruction{
 			return static_cast<uint64_type>(value_);
 		}
 
-		virtual void write_to_memory(char *buffer) const override{
+		virtual void write_to_memory(char *buffer, uint64_type offset) const override{
 			switch (value_type_){
 			case value_type_id_type::byte:
-				write_to_memory_<__int8>(buffer);
+				write_to_memory_<__int8>(buffer, offset);
 				break;
 			case value_type_id_type::word:
-				write_to_memory_<__int16>(buffer);
+				write_to_memory_<__int16>(buffer, offset);
 				break;
 			case value_type_id_type::dword:
-				write_to_memory_<__int32>(buffer);
+				write_to_memory_<__int32>(buffer, offset);
 				break;
 			case value_type_id_type::qword:
-				write_to_memory_<__int64>(buffer);
+				write_to_memory_<__int64>(buffer, offset);
 				break;
 			case value_type_id_type::float_:
-				write_to_memory_<long double>(buffer);
+				write_to_memory_<long double>(buffer, offset);
 				break;
 			default:
-				operand_base::write_to_memory(buffer);
+				operand_base::write_to_memory(buffer, offset);
 				break;
 			}
 		}
@@ -118,7 +122,7 @@ namespace elang::easm::instruction{
 		}
 
 		template <typename target_type>
-		void write_to_memory_(char *buffer) const{
+		void write_to_memory_(char *buffer, uint64_type offset) const{
 			auto value = static_cast<target_type>(value_);
 			memcpy(buffer, &value, sizeof(target_type));
 		}

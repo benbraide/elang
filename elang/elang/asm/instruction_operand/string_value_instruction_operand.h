@@ -68,9 +68,9 @@ namespace elang::easm::instruction{
 			return operand_base::read_64bits();
 		}
 
-		virtual void write_to_memory(char *buffer) const override{
+		virtual void write_to_memory(char *buffer, uint64_type offset) const override{
 			if (value_type_ == value_type_id_type::unknown)
-				operand_base::write_to_memory(buffer);
+				operand_base::write_to_memory(buffer, offset);
 			else//Write bytes
 				memcpy(buffer, value_.data(), value_.size());
 		}

@@ -1,14 +1,13 @@
 section .rodata
 text:
 	db 'hello world!\n'
+tlen:
+	dq $ - text
 section .text
 _start:
-	mov eax, eip
-	lea rdi, [20h]
-	LEA RSI, 0x20
 	mov rax, 3
 	mov rbx, text
-	mov rcx, 13
+	mov rcx, [tlen]
 	syscall
 	mov rax, 0
 	syscall

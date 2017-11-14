@@ -12,6 +12,7 @@
 #include "../../asm/instruction_operand/string_value_instruction_operand.h"
 #include "../../asm/instruction_operand/register_instruction_operand.h"
 #include "../../asm/instruction_operand/label_instruction_operand.h"
+#include "../../asm/instruction_operand/offset_instruction_operand.h"
 #include "../../asm/instruction_operand/memory_instruction_operand.h"
 #include "../../asm/instruction_operand/expression_instruction_operand.h"
 #include "../../asm/instruction_operand/grouped_expression_instruction_operand.h"
@@ -327,6 +328,8 @@ struct asm_traverser{
 	instruction_operand_ptr_type operator()(const asm_identifier &ast) const{
 		std::string id;
 		utils::identifier_to_string(ast, id);
+		if (id == "$")//Offset operand
+			return std::make_shared<elang::easm::instruction::offset_operand>();
 
 		auto reg = elang::vm::machine::register_manager.find(id);
 		if (reg == nullptr)//Label operand
