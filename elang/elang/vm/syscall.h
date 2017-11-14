@@ -8,9 +8,8 @@ namespace elang::vm{
 	public:
 		enum class code{
 			exit,
-			read_char,
-			write_char,
 			read,
+			write_char,
 			write,
 			open,
 			close,
@@ -20,7 +19,7 @@ namespace elang::vm{
 
 		static void exit();
 
-		static void read(bool is_char);
+		static void read();
 
 		static void write(bool is_char);
 	};

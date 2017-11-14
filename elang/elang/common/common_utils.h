@@ -34,7 +34,7 @@ namespace elang::common{
 		template <typename iterator_type>
 		static void escape_string(iterator_type iter, iterator_type end, std::string &out){
 			out.reserve((end - iter) + 1);//Reserve maximum possible size
-			for (; iter != end; ++iter)
+			for (; iter != end;)
 				out.append(1u, escaped_char<char>(iter, end));
 		}
 
@@ -48,7 +48,10 @@ namespace elang::common{
 		template <typename char_type, typename iterator_type>
 		static char_type escaped_char(iterator_type &iter, iterator_type end){
 			auto c = *(iter++);
-			switch (c){
+			if (c != static_cast<char_type>('\\') || iter == end)
+				return c;
+
+			switch (*(iter++)){
 			case 'a':
 				return static_cast<char_type>('\a');
 			case 'b':

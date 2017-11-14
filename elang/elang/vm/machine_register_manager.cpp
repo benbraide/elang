@@ -27,10 +27,7 @@ elang::vm::machine_register *elang::vm::machine_register_manager::find(std::stri
 	utils::to_lower(key);
 
 	auto entry = map_.find(key);
-	if (entry == map_.end())//Error
-		throw error_type::not_found;
-
-	return entry->second.get();
+	return ((entry == map_.end()) ? nullptr : entry->second.get());
 }
 
 const elang::vm::machine_register_manager::map_type &elang::vm::machine_register_manager::content() const{

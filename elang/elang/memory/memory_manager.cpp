@@ -213,7 +213,11 @@ elang::memory::manager::block_type *elang::memory::manager::allocate_(size_type 
 		else//Remove from list
 			available_.erase(address_hint);
 	}
-	else if (find_nearest_(address_hint) != nullptr)
+	else if (find_nearest_(address_hint) == nullptr){
+		if (next_address_ < (address_hint + actual_size))
+			next_address_ = (address_hint + actual_size);
+	}
+	else
 		throw error_type::invalid_address;
 
 	try{
