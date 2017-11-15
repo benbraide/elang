@@ -95,8 +95,8 @@ elang::easm::instruction_section::instruction_section(id_type id)
 void elang::easm::instruction_section::write_memory() const{
 	auto seg_offset = seg_offset_;
 	for (auto &entry : order_list_){//Write instructions to memory
-		if (std::holds_alternative<instruction_type *>(entry))
-			std::get<instruction_type *>(entry)->write_memory(seg_offset);
+		if (std::holds_alternative<instruction_ptr_type>(entry))
+			std::get<instruction_ptr_type>(entry)->write_memory(seg_offset);
 	}
 }
 
@@ -127,7 +127,7 @@ void elang::easm::instruction_section::add(instruction_ptr_type instruction){
 		offset_ += instruction->instruction_bytes();
 	}
 
-	order_list_.push_back(instruction.get());
+	order_list_.push_back(instruction);
 }
 
 elang::easm::instruction_label *elang::easm::instruction_section::find(const std::string &first, const std::vector<std::string> &rest) const{

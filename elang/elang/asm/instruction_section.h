@@ -41,7 +41,7 @@ namespace elang::easm{
 			explicit printer(writer_type &writer)
 				: writer_(&writer){}
 
-			void operator ()(const instruction_type *instruction) const{
+			void operator ()(const instruction_ptr_type instruction) const{
 				writer_->write("  ");
 				instruction->print(*writer_);
 			}
@@ -109,7 +109,7 @@ namespace elang::easm{
 		using instruction_section_base::add;
 		using instruction_section_base::find;
 
-		typedef std::variant<instruction_type *, instruction_label::ptr_type> variant_type;
+		typedef std::variant<instruction_ptr_type, instruction_label::ptr_type> variant_type;
 		typedef std::list<variant_type> order_list_type;
 
 		typedef std::unordered_map<uint64_type, instruction_ptr_type> instruction_list_type;

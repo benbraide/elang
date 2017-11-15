@@ -8,6 +8,7 @@
 #include "../../asm/instruction_id.h"
 #include "../../asm/instruction_section.h"
 
+#include "../../asm/instruction_operand/uninitialized_value_instruction_operand.h"
 #include "../../asm/instruction_operand/constant_value_instruction_operand.h"
 #include "../../asm/instruction_operand/string_value_instruction_operand.h"
 #include "../../asm/instruction_operand/register_instruction_operand.h"
@@ -48,6 +49,8 @@ ELANG_AST_BEGIN
 using instruction_operand_ptr_type = elang::easm::instruction::operand_base::ptr_type;
 using instruction_ptr_type = elang::easm::instruction::base::ptr_type;
 
+ELANG_AST_DECLARE_SINGLE_WPOS(asm_uninitialized_value, char)
+
 ELANG_AST_DECLARE_SINGLE_WPOS(asm_integral_value, __int64)
 ELANG_AST_DECLARE_SINGLE_WPOS(asm_float_value, long double)
 
@@ -70,7 +73,7 @@ ELANG_AST_DECLARE_SINGLE_WPOS(asm_memory, asm_expression)
 ELANG_AST_DECLARE_PAIR(asm_sized_memory, asm_memory, asm_sized_memory_variant)
 
 ELANG_AST_DECLARE_SINGLE_VARIANT(asm_expression_operand, asm_integral_value, asm_float_value, asm_string, asm_identifier, asm_absolute_identifier, asm_grouped_expression)
-ELANG_AST_DECLARE_SINGLE_VARIANT(asm_operand, asm_expression, asm_memory, asm_sized_memory)
+ELANG_AST_DECLARE_SINGLE_VARIANT(asm_operand, asm_uninitialized_value, asm_expression, asm_memory, asm_sized_memory)
 ELANG_AST_DECLARE_PAIR_WPOS(asm_typed_operand, elang::vm::machine_value_type_id, asm_operand)
 
 using asm_instruction_variant = boost::variant<asm_operand, asm_typed_operand>;
@@ -317,6 +320,10 @@ struct asm_traverser{
 		return nullptr;//#TODO: Implement
 	}
 
+	instruction_operand_ptr_type operator()(const asm_uninitialized_value &ast) const{
+		return std::make_shared<elang::easm::instruction::uninitialized_value_operand>();
+	}
+
 	instruction_operand_ptr_type operator()(const asm_integral_value &ast) const{
 		return std::make_shared<elang::easm::instruction::constant_value_operand<__int64>>(elang::vm::machine_value_type_id::unknown, ast.value);
 	}
@@ -357,6 +364,8 @@ struct asm_traverser{
 };
 
 ELANG_AST_END
+
+ELANG_AST_ADAPT_SINGLE(asm_uninitialized_value)
 
 ELANG_AST_ADAPT_SINGLE(asm_integral_value)
 ELANG_AST_ADAPT_SINGLE(asm_float_value)

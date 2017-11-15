@@ -11,8 +11,25 @@ namespace elang::easm::instruction{
 		times(unsigned int count, ptr_type value)
 			: base("times", operand_ptr_list_type{}), count_(count), value_(value){}
 
+		virtual value_type_id_type required_value_type() const override{
+			return value_->required_value_type();
+		}
+
 		virtual size_type instruction_bytes() const override{
 			return (count_ * value_->instruction_bytes());
+		}
+
+		virtual void apply_required_value_type() override{
+			value_->apply_required_value_type();
+		}
+
+		virtual void validate_operands() const override{
+			value_->validate_operands();
+		}
+
+		virtual void write_memory(uint64_type &address) const override{
+			for (auto i = 0u; i < count_; ++i)
+				value_->write_memory(address);
 		}
 
 		virtual void execute_and_update_instruction_pointer(register_type &instruction_pointer) const override{}
