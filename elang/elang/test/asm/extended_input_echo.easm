@@ -17,7 +17,8 @@ _start:
 read:
 	cmp rdx, 255							;Check if buffer is filled
 	je append_newline						;Done reading
-	%syscall 1, buffer + rdx, 1				;Read buffer
+	lea rdi, [buffer + rdx]					;Buffer offset
+	%syscall 1, rdi, 1						;Read buffer
 	inc rdx									;Increment counter
 	cmp byte ptr[buffer + rdx - 1], '\n'	;Compare with newline
 	jne read

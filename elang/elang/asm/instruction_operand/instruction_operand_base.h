@@ -45,6 +45,10 @@ namespace elang::easm::instruction{
 			return false;
 		}
 
+		virtual bool is_expression() const{
+			return false;
+		}
+
 		virtual size_type instruction_bytes() const{
 			switch (value_type()){
 			case value_type_id_type::byte:

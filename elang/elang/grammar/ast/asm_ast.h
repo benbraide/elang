@@ -73,10 +73,10 @@ ELANG_AST_DECLARE_SINGLE_WPOS(asm_memory, asm_expression)
 ELANG_AST_DECLARE_PAIR(asm_sized_memory, asm_memory, asm_sized_memory_variant)
 
 ELANG_AST_DECLARE_SINGLE_VARIANT(asm_expression_operand, asm_integral_value, asm_float_value, asm_string, asm_identifier, asm_absolute_identifier, asm_grouped_expression)
-ELANG_AST_DECLARE_SINGLE_VARIANT(asm_operand, asm_uninitialized_value, asm_expression, asm_memory, asm_sized_memory)
+ELANG_AST_DECLARE_SINGLE_VARIANT(asm_operand, asm_integral_value, asm_float_value, asm_string, asm_identifier, asm_absolute_identifier, asm_memory, asm_sized_memory)
 ELANG_AST_DECLARE_PAIR_WPOS(asm_typed_operand, elang::vm::machine_value_type_id, asm_operand)
 
-using asm_instruction_variant = boost::variant<asm_operand, asm_typed_operand>;
+using asm_instruction_variant = boost::variant<asm_uninitialized_value, asm_expression, asm_operand, asm_typed_operand>;
 
 ELANG_AST_DECLARE_PAIR_WPOS(asm_instruction, elang::easm::instruction::id, std::vector<asm_instruction_variant>)
 ELANG_AST_DECLARE_PAIR_WPOS(asm_extended_instruction, elang::easm::instruction::id, std::vector<asm_instruction_variant>)

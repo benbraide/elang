@@ -27,6 +27,10 @@ namespace elang::easm::instruction{
 			return value_->is_constant();
 		}
 
+		virtual bool is_expression() const override{
+			return true;
+		}
+
 		virtual size_type instruction_bytes() const override{
 			return value_->instruction_bytes();
 		}

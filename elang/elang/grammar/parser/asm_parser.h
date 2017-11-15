@@ -76,6 +76,13 @@ namespace elang::grammar::parser{
 				("sar", elang::easm::instruction::id::sar)
 				("test", elang::easm::instruction::id::test)
 				("cmp", elang::easm::instruction::id::cmp)
+				;
+		}
+	} asm_mnemonic_symbols_;
+
+	struct asm_decl_mnemonic_symbols : x3::symbols<elang::easm::instruction::id>{
+		asm_decl_mnemonic_symbols(){
+			add
 				("db", elang::easm::instruction::id::db)
 				("dw", elang::easm::instruction::id::dw)
 				("dd", elang::easm::instruction::id::dd)
@@ -83,7 +90,7 @@ namespace elang::grammar::parser{
 				("df", elang::easm::instruction::id::df)
 				;
 		}
-	} asm_mnemonic_symbols_;
+	} asm_decl_mnemonic_symbols_;
 
 	struct asm_operator_symbols : x3::symbols<elang::easm::instruction_operator_id>{
 		asm_operator_symbols(){
@@ -130,6 +137,7 @@ namespace elang::grammar::parser{
 
 	x3::rule<class asm_times_instruction, ast::asm_times_instruction> const asm_times_instruction = "asm_times_instruction";
 	x3::rule<class asm_instruction, ast::asm_instruction> const asm_instruction = "asm_instruction";
+	x3::rule<class asm_decl_instruction, ast::asm_instruction> const asm_decl_instruction = "asm_decl_instruction";
 	x3::rule<class asm_extended_instruction, ast::asm_extended_instruction> const asm_extended_instruction = "asm_extended_instruction";
 
 	x3::rule<class asm_instruction_set, ast::asm_instruction_set> const asm_instruction_set = "asm_instruction_set";
@@ -178,20 +186,23 @@ namespace elang::grammar::parser{
 	auto const asm_sized_memory_def = (asm_memory >> (asm_absolute_identifier | asm_identifier));
 
 	auto const asm_expression_operand_def = (asm_grouped_expression | asm_string | asm_float_value | asm_integral_value | asm_absolute_identifier | asm_identifier);
-	auto const asm_operand_def = (asm_uninitialized_value | asm_sized_memory | asm_memory | asm_expression);
+	auto const asm_operand_def = (asm_sized_memory | asm_memory | asm_string | asm_float_value | asm_integral_value | asm_absolute_identifier | asm_identifier);
 
-	auto const asm_typed_operand_def = (x3::no_case[asm_type_symbols_ >> "ptr"] >> asm_operand);
+	auto const asm_typed_operand_def = (x3::no_case[asm_type_symbols_ >> "ptr"] >> asm_memory);
 
 	auto const asm_struct_def_value_def = (asm_type_def >> x3::omit[x3::eol]);
 	auto const asm_struct_def_def = (x3::no_case[utils::keyword("struct")] >> '{' >> x3::omit[x3::eol] >> +asm_struct_def_value >> '}');
 	auto const asm_type_def_def = (asm_identifier >> (asm_struct_def | asm_type_symbols_));
 
-	auto const asm_times_instruction_def = (x3::no_case[utils::keyword("times")] >> x3::uint_ >> (asm_extended_instruction | asm_instruction));
+	auto const asm_times_instruction_def = (x3::no_case[utils::keyword("times")] >> x3::uint_ >> (asm_extended_instruction | asm_decl_instruction | asm_instruction));
+
 	auto const asm_instruction_def = (utils::keyword(x3::no_case[asm_mnemonic_symbols_]) >> -((asm_typed_operand | asm_operand) % ","));
+	auto const asm_decl_instruction_def = (utils::keyword(x3::no_case[asm_decl_mnemonic_symbols_]) >> ((asm_uninitialized_value | asm_expression) % ","));
+
 	auto const asm_extended_instruction_def = (x3::lexeme['%' >> utils::keyword(x3::no_case[asm_mnemonic_symbols_])] >> -((asm_typed_operand | asm_operand) % ","));
 
 	auto const asm_instruction_set_value_def = (
-		(asm_section | asm_label | asm_times_instruction | asm_extended_instruction | asm_instruction | asm_type_def)
+		(asm_section | asm_label | asm_times_instruction | asm_extended_instruction | asm_decl_instruction | asm_instruction | asm_type_def)
 		>> x3::omit[(x3::eol | x3::eoi)]
 	);
 	auto const asm_instruction_set_def = (*asm_instruction_set_value);
@@ -219,6 +230,7 @@ namespace elang::grammar::parser{
 		asm_type_def,
 		asm_times_instruction,
 		asm_instruction,
+		asm_decl_instruction,
 		asm_extended_instruction,
 		asm_instruction_set_value,
 		asm_instruction_set,
