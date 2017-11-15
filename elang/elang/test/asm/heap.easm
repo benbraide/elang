@@ -1,0 +1,81 @@
+section .rodata
+prompt:
+	db 'Enter text: '
+prompt_len:
+	dq $ - prompt
+echo_text:
+	db 'You entered: '
+echo_text_len:
+	dq $ - echo_text
+alloc_text:
+	db 'Number of reallocations: '
+alloc_text_len:
+	dq $ - alloc_text
+section .data
+buffer:
+	dq ?
+buffer_size:
+	dq ?
+section .text
+_start:
+	mov eax, 0x20						;Allocate memory from heap
+	mov ebx, 0x04						;Allocate 4 bytes
+	syscall
+	mov qword ptr[buffer_size], 4		;Update buffer size
+	mov [buffer], rax					;Copy address to buffer
+	mov eax, 3							;Write buffer
+	mov rbx, prompt						;Buffer to write
+	mov rcx, [prompt_len]				;Length of buffer
+	syscall
+	xor rdx, rdx						;Zero counter
+	xor rsi, rsi						;Zero reallocation counter
+read:
+	cmp rdx, [buffer_size]				;Check if buffer is filled
+	je call_reallocate					;Increase buffer size
+called_reallocate:
+	mov rax, 1							;Read input
+	mov rdi, [buffer]					;Memory address
+	lea rbx, [rdi + rdx]				;Buffer to read into
+	mov rcx, 1							;Number of bytes to read
+	syscall
+	inc rdx								;Increment counter
+	cmp byte ptr[rdi + rdx - 1], '\n'	;Compare with newline
+	jne read
+	mov rax, 3							;Write buffer
+	mov rbx, echo_text					;Buffer to write
+	mov rcx, [echo_text_len]			;Length of buffer
+	syscall
+	mov rax, 3							;Write buffer
+	mov rbx, [buffer]					;Buffer to write
+	mov rcx, rdx						;Length of buffer
+	syscall
+	mov rax, 3							;Write buffer
+	mov rbx, alloc_text					;Buffer to write
+	mov rcx, [alloc_text_len]			;Length of buffer
+	syscall
+	mov rax, 4							;Write integer
+	mov rbx, rsi						;Value to write
+	syscall
+	mov rax, 2							;Write char
+	mov rbx, 10							;Value to write -- newline
+	syscall
+	mov rax, 0x22						;Deallocate
+	mov rbx, [buffer]					;Memory address
+	syscall
+	mov rax, 0							;Exit
+	syscall
+call_reallocate:
+	call reallocate						;Do call
+	jmp called_reallocate				;Resume
+reallocate:
+	mov rax, [buffer_size]				;Current buffer size
+	add rax, 4							;Add 4 bytes
+	mov [buffer_size], rax				;Update buffer size
+	mov rax, 0x21						;Reallocate memory
+	mov rbx, [buffer]					;Heap memory address
+	mov rcx, [buffer_size]				;New size
+	syscall
+	mov [buffer], rax					;Copy address to buffer
+	inc rsi								;Increment reallocation counter
+	ret
+	

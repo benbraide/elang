@@ -13,8 +13,10 @@ namespace elang::easm::instruction{
 			: base("mov", std::forward<args_types>(args)...){}
 
 		virtual void apply_required_value_type() override{
-			if (operands_.size() == 2u)
+			if (operands_.size() == 2u){
 				operands_[1]->apply_value_type(operands_[0]->value_type());
+				operands_[0]->apply_value_type(operands_[1]->value_type());
+			}
 		}
 
 		virtual void validate_operands() const override{
