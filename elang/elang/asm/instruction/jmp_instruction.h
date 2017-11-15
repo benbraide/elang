@@ -22,15 +22,6 @@ namespace elang::easm::instruction{
 			if (operands_.size() != 1u)
 				throw error_type::bad_operand_count;
 
-			switch (operands_[0]->id()){
-			case operand_id_type::register_value:
-			case operand_id_type::label:
-				break;
-			default:
-				throw error_type::bad_operand;
-				break;
-			}
-
 			if (operands_[0]->value_type() != value_type_id_type::qword)
 				throw error_type::bad_operand;
 		}

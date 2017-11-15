@@ -115,6 +115,13 @@ namespace elang::easm{
 		typedef std::unordered_map<uint64_type, instruction_ptr_type> instruction_list_type;
 		typedef std::unordered_map<instruction_label *, uint64_type> label_list_type;
 
+		struct range_type{
+			uint64_type from;
+			uint64_type to;
+		};
+
+		typedef std::unordered_map<instruction_type *, range_type> range_map_type;
+
 		explicit instruction_section(id_type id);
 
 		virtual void write_memory() const override;
@@ -137,6 +144,7 @@ namespace elang::easm{
 		order_list_type order_list_;
 		instruction_list_type instruction_list_;
 		label_list_type label_list_;
+		range_map_type range_map_;
 	};
 }
 

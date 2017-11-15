@@ -116,21 +116,14 @@ void elang::easm::instruction_section::add(instruction_ptr_type instruction){
 	instruction->apply_required_value_type();
 	instruction->validate_operands();
 
-	auto times = dynamic_cast<instruction::times *>(instruction.get());
-	if (times != nullptr){//Repeat instruction
-		auto value = times->value();
-		auto instruction_bytes = value->instruction_bytes();
-		for (auto count = times->count(); count > 0u; --count){
-			instruction_list_[offset_] = value;
-			offset_ += instruction_bytes;
-		}
-	}
-	else{//Normal instruction
+	auto instruction_bytes = instruction->instruction_bytes();
+	if (dynamic_cast<instruction::times *>(instruction.get()) == nullptr)
 		instruction_list_[offset_] = instruction;
-		offset_ += instruction->instruction_bytes();
-	}
+	else//Repeat instruction
+		range_map_[instruction.get()] = range_type{ offset_, (offset_ + instruction_bytes) };
 
 	order_list_.push_back(instruction);
+	offset_ += instruction_bytes;
 }
 
 elang::easm::instruction_label *elang::easm::instruction_section::find(const std::string &first, const std::vector<std::string> &rest) const{
@@ -165,5 +158,19 @@ void elang::easm::instruction_section::print_content_(writer_type &writer) const
 
 elang::easm::instruction_section_base::instruction_type *elang::easm::instruction_section::find_(uint64_type offset) const{
 	auto entry = instruction_list_.find(offset);
-	return ((entry == instruction_list_.end()) ? nullptr : entry->second.get());
+	if (entry != instruction_list_.end())//Entry exists
+		return entry->second.get();
+
+	for (auto &range : range_map_){//Search ranges
+		if (offset < range.second.from || offset >= range.second.to)//Outside range
+			continue;
+
+		auto value = dynamic_cast<instruction::times *>(range.first)->value();
+		if (((offset - range.second.from) % value->instruction_bytes()) != 0u)
+			break;//Not byte aligned
+
+		return value.get();
+	}
+
+	return nullptr;
 }
