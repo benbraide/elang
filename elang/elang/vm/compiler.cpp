@@ -20,6 +20,10 @@ elang::vm::compiler::compiler()
 		primitive_type_map_[id] = std::make_shared<primitive_type_info>(id, type_info::attribute_type::nil);
 }
 
+bool elang::vm::compiler::is_compiling() const{
+	return false;
+}
+
 elang::vm::register_store &elang::vm::compiler::store(){
 	return store_;
 }

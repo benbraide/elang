@@ -58,10 +58,17 @@ ELANG_AST_DECLARE_SINGLE_WPOS(asm_string, std::vector<char>)
 
 using asm_identifier = elang::grammar::elang_identifier_ast;
 
-ELANG_AST_DECLARE_PAIR(asm_absolute_identifier, asm_identifier, std::vector<asm_identifier>)
+ELANG_AST_DECLARE_SINGLE(asm_global_qualified_identifier, asm_identifier)
+
+using asm_qualified_identifier_variant = boost::variant<asm_identifier, asm_global_qualified_identifier>;
+
+ELANG_AST_DECLARE_PAIR(asm_qualified_identifier, asm_qualified_identifier_variant, std::vector<asm_identifier>)
+ELANG_AST_DECLARE_SINGLE_VARIANT(asm_identifier_compatible, asm_identifier, asm_global_qualified_identifier, asm_qualified_identifier)
+
+ELANG_AST_DECLARE_PAIR(asm_absolute_identifier, asm_identifier_compatible, std::vector<asm_identifier_compatible>)
 
 ELANG_AST_DECLARE_SINGLE_WPOS(asm_section, elang::easm::section_id)
-ELANG_AST_DECLARE_PAIR_WPOS(asm_label, std::vector<char>, asm_identifier)
+ELANG_AST_DECLARE_PAIR_WPOS(asm_label, std::vector<char>, asm_identifier_compatible)
 
 using asm_expression = instruction_operand_ptr_type;
 
@@ -72,8 +79,8 @@ using asm_sized_memory_variant = boost::variant<asm_identifier, asm_absolute_ide
 ELANG_AST_DECLARE_SINGLE_WPOS(asm_memory, asm_expression)
 ELANG_AST_DECLARE_PAIR(asm_sized_memory, asm_memory, asm_sized_memory_variant)
 
-ELANG_AST_DECLARE_SINGLE_VARIANT(asm_expression_operand, asm_integral_value, asm_float_value, asm_string, asm_identifier, asm_absolute_identifier, asm_grouped_expression)
-ELANG_AST_DECLARE_SINGLE_VARIANT(asm_operand, asm_integral_value, asm_float_value, asm_string, asm_identifier, asm_absolute_identifier, asm_memory, asm_sized_memory)
+ELANG_AST_DECLARE_SINGLE_VARIANT(asm_expression_operand, asm_integral_value, asm_float_value, asm_string, asm_identifier_compatible, asm_absolute_identifier, asm_grouped_expression)
+ELANG_AST_DECLARE_SINGLE_VARIANT(asm_operand, asm_integral_value, asm_float_value, asm_string, asm_identifier_compatible, asm_absolute_identifier, asm_memory, asm_sized_memory)
 ELANG_AST_DECLARE_PAIR_WPOS(asm_typed_operand, elang::vm::machine_value_type_id, asm_operand)
 
 using asm_instruction_variant = boost::variant<asm_uninitialized_value, asm_expression, asm_operand, asm_typed_operand>;
@@ -96,6 +103,34 @@ ELANG_AST_DECLARE_PAIR_WPOS(asm_type_def, asm_identifier, asm_type_def_variant)
 
 ELANG_AST_DECLARE_SINGLE_VARIANT(asm_instruction_set_value, asm_section, asm_label, asm_instruction, asm_extended_instruction, asm_times_instruction, asm_type_def)
 ELANG_AST_DECLARE_SINGLE(asm_instruction_set, std::vector<asm_instruction_set_value>)
+
+struct asm_identifier_to_string{
+	explicit asm_identifier_to_string(std::string &out)
+		: out_(&out){}
+
+	void operator ()(const asm_identifier &ast) const{
+		utils::identifier_to_string(ast, *out_);
+	}
+
+	void operator ()(const asm_global_qualified_identifier &ast) const{
+		operator ()(ast.value);
+		*out_ = ("::" + *out_);
+	}
+
+	void operator ()(const asm_qualified_identifier &ast) const{
+		boost::apply_visitor(asm_identifier_to_string(*out_), ast.first);
+		for (auto &entry : ast.second){
+			*out_ += "::";
+			operator()(entry);
+		}
+	}
+
+	void operator ()(const asm_identifier_compatible &ast) const{
+		boost::apply_visitor(asm_identifier_to_string(*out_), ast.value);
+	}
+
+	std::string *out_;
+};
 
 struct asm_traverser{
 	static void translate(const asm_instruction_set &ast){
@@ -267,7 +302,8 @@ struct asm_traverser{
 
 	void operator()(const asm_label &ast) const{
 		std::string label;
-		utils::identifier_to_string(ast.second, label);
+		asm_identifier_to_string idts(label);
+		idts(ast.second);
 		elang::vm::machine::asm_translation.add(static_cast<unsigned int>(ast.first.size()), label);
 	}
 
@@ -347,15 +383,41 @@ struct asm_traverser{
 		return std::make_shared<elang::easm::instruction::label_operand>(id);
 	}
 
+	instruction_operand_ptr_type operator()(const asm_global_qualified_identifier &ast) const{
+		if (!elang::vm::machine::compiler.is_compiling()){
+			std::string id;
+			asm_identifier_to_string idts(id);
+			idts(ast);
+			return std::make_shared<elang::easm::instruction::label_operand>(id);
+		}
+
+		return nullptr;
+	}
+
+	instruction_operand_ptr_type operator()(const asm_qualified_identifier &ast) const{
+		if (!elang::vm::machine::compiler.is_compiling()){
+			std::string id;
+			asm_identifier_to_string idts(id);
+			idts(ast);
+			return std::make_shared<elang::easm::instruction::label_operand>(id);
+		}
+
+		return nullptr;
+	}
+
+	instruction_operand_ptr_type operator()(const asm_identifier_compatible &ast) const{
+		return boost::apply_visitor(asm_traverser(), ast.value);
+	}
+
 	instruction_operand_ptr_type operator()(const asm_absolute_identifier &ast) const{
 		std::string first;
-		utils::identifier_to_string(ast.first, first);
+		boost::apply_visitor(asm_identifier_to_string(first), ast.first.value);
 
 		auto index = 0u;
 		std::vector<std::string> rest(ast.second.size());
 
 		for (auto &entry : ast.second)//Resolve rest
-			utils::identifier_to_string(entry, rest[index++]);
+			boost::apply_visitor(asm_identifier_to_string(rest[index++]), entry.value);
 
 		return std::make_shared<elang::easm::instruction::label_operand>(std::move(first), std::move(rest));
 	}
@@ -371,8 +433,12 @@ ELANG_AST_ADAPT_SINGLE(asm_uninitialized_value)
 
 ELANG_AST_ADAPT_SINGLE(asm_integral_value)
 ELANG_AST_ADAPT_SINGLE(asm_float_value)
-
 ELANG_AST_ADAPT_SINGLE(asm_string)
+
+ELANG_AST_ADAPT_SINGLE(asm_global_qualified_identifier)
+ELANG_AST_ADAPT_PAIR(asm_qualified_identifier)
+
+ELANG_AST_ADAPT_SINGLE(asm_identifier_compatible)
 ELANG_AST_ADAPT_PAIR(asm_absolute_identifier)
 
 ELANG_AST_ADAPT_SINGLE(asm_section)

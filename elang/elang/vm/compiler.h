@@ -68,6 +68,8 @@ namespace elang::vm{
 
 		compiler();
 
+		bool is_compiling() const;
+
 		register_store &store();
 
 		section_type &section(section_id_type id);

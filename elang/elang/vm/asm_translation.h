@@ -84,6 +84,10 @@ namespace elang::vm{
 
 		size_type stack_size() const;
 
+		void enable_extended_identifier(bool enabled = true);
+
+		bool extended_identifier_enabled() const;
+
 		static void translate(elang::grammar::source_base &source);
 
 		static void translate(const std::string &file_name, const std::string &path = "");
@@ -96,6 +100,7 @@ namespace elang::vm{
 		label_operand_list_type label_operand_list_;
 		std::string start_label_;
 		size_type stack_size_;
+		bool extended_identifier_enabled_;
 	};
 }
 

@@ -31,8 +31,8 @@ namespace elang::grammar::parser{
 	auto const global_qualified_identifier_def = ("::" >> (operator_identifier | identifier));
 	auto const qualified_identifier_def = ((global_qualified_identifier | operator_identifier | identifier) >> "::" >> (operator_identifier | identifier));
 
-	auto const identifier_compatible_def = (qualified_identifier_def | global_qualified_identifier | operator_identifier | identifier);
-	auto const non_operator_identifier_compatible_def = (qualified_identifier_def | global_qualified_identifier | identifier);
+	auto const identifier_compatible_def = (qualified_identifier | global_qualified_identifier | operator_identifier | identifier);
+	auto const non_operator_identifier_compatible_def = (qualified_identifier | global_qualified_identifier | identifier);
 
 	BOOST_SPIRIT_DEFINE(
 		identifier,

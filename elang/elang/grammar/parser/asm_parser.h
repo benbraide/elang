@@ -116,6 +116,11 @@ namespace elang::grammar::parser{
 
 	x3::rule<class asm_string, ast::asm_string> const asm_string = "asm_string";
 	x3::rule<class asm_identifier, ast::asm_identifier> const asm_identifier = "asm_identifier";
+
+	x3::rule<class asm_global_qualified_identifier, ast::asm_global_qualified_identifier> const asm_global_qualified_identifier = "asm_global_qualified_identifier";
+	x3::rule<class asm_qualified_identifier, ast::asm_qualified_identifier> const asm_qualified_identifier = "asm_qualified_identifier";
+
+	x3::rule<class asm_identifier_compatible, ast::asm_identifier_compatible> const asm_identifier_compatible = "asm_identifier_compatible";
 	x3::rule<class asm_absolute_identifier, ast::asm_absolute_identifier> const asm_absolute_identifier = "asm_absolute_identifier";
 
 	x3::rule<class asm_section, ast::asm_section> const asm_section = "asm_section";
@@ -144,6 +149,10 @@ namespace elang::grammar::parser{
 	x3::rule<class asm_instruction_set_value, ast::asm_instruction_set_value> const asm_instruction_set_value = "asm_instruction_set_value";
 
 	x3::rule<class asm_skip> const asm_skip = "asm_skip";
+
+	auto asm_parse_enhanced = [](auto &ctx){
+		x3::_pass(ctx) = elang::vm::machine::asm_translation.extended_identifier_enabled();
+	};
 
 	auto asm_parsed_single = [](auto &ctx){
 		x3::_val(ctx) = ast::asm_traverser::operand(x3::_attr(ctx));
@@ -174,10 +183,15 @@ namespace elang::grammar::parser{
 
 	auto const asm_string_def = ("'" >> x3::lexeme[*(~x3::char_("'"))] >> "'");
 	auto const asm_identifier_def = elang_identifier;
-	auto const asm_absolute_identifier_def = (asm_identifier >> +('.' >> asm_identifier));
+
+	auto const asm_global_qualified_identifier_def = (x3::eps[asm_parse_enhanced] >> "::" >> asm_identifier);
+	auto const asm_qualified_identifier_def = (x3::eps[asm_parse_enhanced] >> (asm_global_qualified_identifier | asm_identifier) >> "::" >> asm_identifier);
+
+	auto const asm_identifier_compatible_def = (asm_qualified_identifier | asm_global_qualified_identifier | asm_identifier);
+	auto const asm_absolute_identifier_def = (asm_identifier_compatible >> +('.' >> asm_identifier_compatible));
 
 	auto const asm_section_def = x3::no_case[(utils::keyword("section") >> asm_section_symbols_)];
-	auto const asm_label_def = (x3::lexeme[*x3::char_('.') >> asm_identifier >> utils::keyword(":")]);
+	auto const asm_label_def = (x3::lexeme[*x3::char_('.') >> asm_identifier_compatible >> utils::keyword(":")]);
 
 	auto const asm_expression_def = (asm_expression_operand)[asm_parsed_single] >> *(asm_operator_symbols_ >> asm_expression_operand)[asm_parsed_expression];
 	auto const asm_grouped_expression_def = ('(' >> asm_expression >> ')');
@@ -185,8 +199,8 @@ namespace elang::grammar::parser{
 	auto const asm_memory_def = ('[' >> asm_expression >> ']');
 	auto const asm_sized_memory_def = (asm_memory >> (asm_absolute_identifier | asm_identifier));
 
-	auto const asm_expression_operand_def = (asm_grouped_expression | asm_string | asm_float_value | asm_integral_value | asm_absolute_identifier | asm_identifier);
-	auto const asm_operand_def = (asm_sized_memory | asm_memory | asm_string | asm_float_value | asm_integral_value | asm_absolute_identifier | asm_identifier);
+	auto const asm_expression_operand_def = (asm_grouped_expression | asm_string | asm_float_value | asm_integral_value | asm_absolute_identifier | asm_identifier_compatible);
+	auto const asm_operand_def = (asm_sized_memory | asm_memory | asm_string | asm_float_value | asm_integral_value | asm_absolute_identifier | asm_identifier_compatible);
 
 	auto const asm_typed_operand_def = (x3::no_case[asm_type_symbols_ >> "ptr"] >> asm_memory);
 
@@ -215,6 +229,9 @@ namespace elang::grammar::parser{
 		asm_float_value,
 		asm_string,
 		asm_identifier,
+		asm_global_qualified_identifier,
+		asm_qualified_identifier,
+		asm_identifier_compatible,
 		asm_absolute_identifier,
 		asm_section,
 		asm_label,

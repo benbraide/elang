@@ -46,7 +46,7 @@ namespace elang::grammar{
 		}
 
 		static void identifier_to_string(const elang_identifier_ast &ast, std::string &value){
-			value.reserve(ast.rest.size() + 2);
+			value.reserve(value.size() + ast.rest.size() + 2);
 			value.append(1, ast.first);
 			value.append(ast.rest.data(), ast.rest.size());
 		}

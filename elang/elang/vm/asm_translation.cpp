@@ -4,7 +4,7 @@
 #include "asm_translation.h"
 
 elang::vm::asm_translation::asm_translation()
-	: active_label_(nullptr), active_section_(nullptr){
+	: active_label_(nullptr), active_section_(nullptr), extended_identifier_enabled_(false){
 	section_order_.reserve(4);
 	section_order_.push_back(section_id_type::rodata);
 	section_order_.push_back(section_id_type::data);
@@ -171,6 +171,14 @@ const std::string &elang::vm::asm_translation::start_label() const{
 
 elang::vm::asm_translation::size_type elang::vm::asm_translation::stack_size() const{
 	return stack_size_;
+}
+
+void elang::vm::asm_translation::enable_extended_identifier(bool enabled){
+	extended_identifier_enabled_ = enabled;
+}
+
+bool elang::vm::asm_translation::extended_identifier_enabled() const{
+	return (extended_identifier_enabled_ || machine::compiler.is_compiling());
 }
 
 void elang::vm::asm_translation::translate(elang::grammar::source_base &source){
