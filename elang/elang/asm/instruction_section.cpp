@@ -1,4 +1,7 @@
 #include "../vm/machine.h"
+
+#include "instruction/times_instruction.h"
+
 #include "instruction_section.h"
 
 elang::easm::instruction_section_base::instruction_section_base(id_type id)
@@ -96,7 +99,7 @@ void elang::easm::instruction_section::write_memory() const{
 	auto seg_offset = seg_offset_;
 	for (auto &entry : order_list_){//Write instructions to memory
 		if (std::holds_alternative<instruction_ptr_type>(entry))
-			std::get<instruction_ptr_type>(entry)->write_memory(seg_offset);
+			std::get<instruction_ptr_type>(entry)->write_memory(seg_offset, nullptr);
 	}
 }
 

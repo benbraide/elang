@@ -3,6 +3,8 @@
 #ifndef ELANG_TIMES_INSTRUCTION_H
 #define ELANG_TIMES_INSTRUCTION_H
 
+#include "../../vm/machine.h"
+
 #include "instruction_base.h"
 
 namespace elang::easm::instruction{
@@ -27,9 +29,15 @@ namespace elang::easm::instruction{
 			value_->validate_operands();
 		}
 
-		virtual void write_memory(uint64_type &address) const override{
-			for (auto i = 0u; i < count_; ++i)
-				value_->write_memory(address);
+		virtual void write_memory(uint64_type &address, char *buffer) const override{
+			if (buffer == nullptr)//Allocate buffer
+				buffer = elang::vm::machine::memory_manager.allocate(instruction_bytes(), address)->data.get();
+
+			auto bytes = value_->instruction_bytes();
+			for (auto i = 0u; i < count_; ++i){
+				value_->write_memory(address, buffer);
+				buffer += bytes;
+			}
 		}
 
 		virtual void execute_and_update_instruction_pointer(register_type &instruction_pointer) const override{}

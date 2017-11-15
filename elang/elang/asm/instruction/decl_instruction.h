@@ -53,14 +53,14 @@ namespace elang::easm::instruction{
 			}
 		}
 
-		virtual void write_memory(uint64_type &address) const override{
-			auto block = elang::vm::machine::memory_manager.allocate(instruction_bytes(), address);
-			auto data = block->data.get();
+		virtual void write_memory(uint64_type &address, char *buffer) const override{
+			if (buffer == nullptr)//Allocate buffer
+				buffer = elang::vm::machine::memory_manager.allocate(instruction_bytes(), address)->data.get();
 
 			for (auto operand : operands_){//Write operands
-				operand->write_to_memory(data, address);
+				operand->write_to_memory(buffer, address);
 				address += operand->instruction_bytes();
-				data += operand->instruction_bytes();
+				buffer += operand->instruction_bytes();
 			}
 		}
 

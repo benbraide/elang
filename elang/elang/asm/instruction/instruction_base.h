@@ -56,7 +56,7 @@ namespace elang::easm::instruction{
 
 		virtual void validate_operands() const{}
 
-		virtual void write_memory(uint64_type &address) const{
+		virtual void write_memory(uint64_type &address, char *buffer) const{
 			address += instruction_bytes();
 		}
 

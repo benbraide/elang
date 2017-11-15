@@ -8,7 +8,7 @@
 
 #include "../vm/runtime_type.h"
 
-#include "instruction/times_instruction.h"
+#include "instruction/instruction_base.h"
 
 #include "instruction_label.h"
 
