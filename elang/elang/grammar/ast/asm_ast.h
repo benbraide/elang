@@ -91,7 +91,7 @@ using asm_type_def_variant = boost::variant<elang::vm::machine_value_type_id, as
 
 ELANG_AST_DECLARE_PAIR_WPOS(asm_type_def, asm_identifier, asm_type_def_variant)
 
-ELANG_AST_DECLARE_SINGLE_VARIANT(asm_instruction_set_value, asm_section, asm_label, asm_instruction, asm_times_instruction, asm_type_def)
+ELANG_AST_DECLARE_SINGLE_VARIANT(asm_instruction_set_value, asm_section, asm_label, asm_instruction, asm_extended_instruction, asm_times_instruction, asm_type_def)
 ELANG_AST_DECLARE_SINGLE(asm_instruction_set, std::vector<asm_instruction_set_value>)
 
 struct asm_traverser{

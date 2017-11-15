@@ -1,7 +1,15 @@
 #include "machine.h"
 
 void elang::vm::machine::boot(){
-	
+	memory_manager.boot();
+	asm_translation.boot();
+
+	running = running_thread = false;
+	cached_registers.instruction_pointer->write(static_cast<uint64_type>(0u));
+
+	runtime.protected_mode_count = 0u;
+	runtime.stack.boot();
+	runtime.runtime_type_manager.boot();
 }
 
 void elang::vm::machine::shutdown(bool thread){
@@ -26,7 +34,7 @@ void elang::vm::machine::run(){
 	}
 
 	running = running_thread = true;
-	runtime.stack.create(stack_size);
+	runtime.stack.create((asm_translation.stack_size() == 0u) ? stack_size : asm_translation.stack_size());
 
 	while (running && running_thread){
 		auto next_instruction = asm_translation.find(cached_registers.instruction_pointer->read_64bits());

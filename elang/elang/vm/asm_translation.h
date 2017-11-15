@@ -42,6 +42,8 @@ namespace elang::vm{
 
 		asm_translation();
 
+		void boot();
+
 		void bundle();
 
 		void start_label(const std::string &value);

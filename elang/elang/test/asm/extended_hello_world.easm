@@ -1,0 +1,9 @@
+section .rodata
+text:
+	db 'hello world!', 10
+tlen:
+	dq $ - text
+section .text
+_start:
+	%syscall 3, text, [tlen]	;Write buffer
+	%syscall 0					;Exit

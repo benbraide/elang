@@ -40,6 +40,8 @@ namespace elang::memory{
 		typedef std::lock_guard<lock_type> lock_guard_type;
 		typedef std::shared_lock<lock_type> shared_lock_guard_type;
 
+		void boot();
+
 		void protect_from_access(const range_type &range);
 
 		bool is_access_protected(const range_type &range) const;

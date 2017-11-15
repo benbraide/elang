@@ -5,9 +5,9 @@ tlen:
 	dq $ - text
 section .text
 _start:
-	mov rax, 3
-	mov rbx, text
-	mov rcx, [tlen]
+	mov rax, 3			;Write buffer
+	mov rbx, text		;Buffer to write
+	mov rcx, [tlen]		;Length of buffer
 	syscall
-	mov rax, 0
+	mov rax, 0			;Exit
 	syscall

@@ -6,6 +6,11 @@ elang::vm::runtime_stack::runtime_stack(size_type data_size)
 		create(data_size);
 }
 
+void elang::vm::runtime_stack::boot(){
+	address_ = 0u;
+	data_ = max_ = nullptr;
+}
+
 void elang::vm::runtime_stack::create(size_type data_size){
 	if (data_ != nullptr)
 		return;//Already allocated

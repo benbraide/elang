@@ -2,6 +2,13 @@
 
 #include "memory_manager.h"
 
+void elang::memory::manager::boot(){
+	access_protected_ = write_protected_ = range_type{};
+	next_address_ = 1u;
+	map_.clear();
+	available_.clear();
+}
+
 void elang::memory::manager::protect_from_access(const range_type &range){
 	access_protected_ = range;
 	if (next_address_ <= range.to)

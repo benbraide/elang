@@ -17,6 +17,8 @@ namespace elang::vm{
 
 		explicit runtime_stack(size_type data_size = 0u);
 
+		void boot();
+
 		void create(size_type data_size = 0u);
 
 		void push(size_type size);

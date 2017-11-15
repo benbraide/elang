@@ -12,6 +12,15 @@ elang::vm::asm_translation::asm_translation()
 	section_order_.push_back(section_id_type::text);
 }
 
+void elang::vm::asm_translation::boot(){
+	active_label_ = nullptr;
+	active_section_ = nullptr;
+	section_map_.clear();
+	label_operand_list_.clear();
+	start_label_.clear();
+	stack_size_ = 0u;
+}
+
 void elang::vm::asm_translation::bundle(){
 	uint64_type seg_offset = (elang::vm::machine::access_protected.to + 1u);
 	for (auto id : section_order_){
@@ -176,7 +185,7 @@ void elang::vm::asm_translation::translate(elang::grammar::source_base &source){
 	ast::asm_traverser::translate(instruction_set);
 
 	machine::asm_translation.bundle();
-	//machine::asm_translation.print(machine::out_writer);
+	machine::asm_translation.print(machine::out_writer);
 
 	machine::run();
 	machine::shutdown(false);//Perform necessary cleanup
