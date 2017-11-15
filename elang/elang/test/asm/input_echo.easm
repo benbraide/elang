@@ -1,0 +1,44 @@
+section .rodata
+prompt:
+	db 'Enter text: '
+prompt_len:
+	dq $ - prompt
+echo_text:
+	db 'You entered: '
+echo_text_len:
+	dq $ - echo_text
+section .data
+buffer:
+	times 256 db ?
+section .text
+_start:
+	mov rax, 3							;Write buffer
+	mov rbx, prompt						;Buffer to write
+	mov rcx, [prompt_len]				;Length of buffer
+	syscall
+	xor rdx, rdx						;Zero
+read:
+	cmp rdx, 255						;Check if buffer is filled
+	je append_newline					;Done reading
+	mov rax, 1							;Read input
+	lea rbx, [buffer + rdx]				;Buffer to read into
+	mov rcx, 1							;Number of bytes to read
+	syscall
+	inc rdx								;Increment counter
+	cmp byte ptr[buffer + rdx - 1], '\n';Compare with newline
+	jne read
+read_end:
+	mov rax, 3							;Write buffer
+	mov rbx, echo_text					;Buffer to write
+	mov rcx, [echo_text_len]			;Length of buffer
+	syscall
+	mov rax, 3							;Write buffer
+	mov rbx, buffer						;Buffer to write
+	mov rcx, rdx						;Length of buffer
+	syscall
+	mov rax, 0							;Exit
+	syscall
+append_newline:
+	mov byte ptr[buffer + rdx], '\n'	;Append newline
+	inc rdx								;Increment counter
+	jmp read_end

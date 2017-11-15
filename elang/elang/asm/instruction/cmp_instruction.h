@@ -25,7 +25,7 @@ namespace elang::easm::instruction{
 			if (operands_.size() != operand_count_())
 				throw error_type::bad_operand_count;
 
-			if (operands_[0]->id() != operand_id_type::register_value)
+			if (operands_[0]->id() != operand_id_type::register_value && operands_[0]->id() != operand_id_type::memory)
 				throw error_type::bad_operand;
 
 			check_mismatch_();

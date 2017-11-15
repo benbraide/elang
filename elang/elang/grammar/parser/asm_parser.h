@@ -157,16 +157,15 @@ namespace elang::grammar::parser{
 
 	auto const asm_integral_value_def = (
 		x3::lexeme["0x" >> asm_long_long_hex] |
+		x3::lexeme["0b" >> asm_long_long_bin] |
 		x3::lexeme["0" >> asm_long_long_oct] |
-		x3::lexeme[asm_long_long_hex >> 'h'] |
-		x3::lexeme[asm_long_long_bin >> 'b'] |
 		x3::long_long
 	);
 
 	auto const asm_float_value_def = long_double_;
 
 	auto const asm_string_def = ("'" >> x3::lexeme[*(~x3::char_("'"))] >> "'");
-	auto const asm_identifier_def = (!x3::no_case[utils::keyword("section")] >> elang_identifier);
+	auto const asm_identifier_def = elang_identifier;
 	auto const asm_absolute_identifier_def = (asm_identifier >> +('.' >> asm_identifier));
 
 	auto const asm_section_def = x3::no_case[(utils::keyword("section") >> asm_section_symbols_)];

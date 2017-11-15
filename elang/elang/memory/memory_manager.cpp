@@ -391,7 +391,7 @@ void elang::memory::manager::read_(uint64_type source, char *destination, size_t
 			throw error_type::invalid_address;
 
 		min_size = (available_size < size) ? available_size : size;
-		memcpy(destination, block->data.get(), min_size);//Read block
+		memcpy(destination, block->data.get() + ptr_index, min_size);//Read block
 
 		destination += min_size;
 		source += min_size;
@@ -412,7 +412,7 @@ void elang::memory::manager::read_(uint64_type source, output_writer_type &desti
 			throw error_type::invalid_address;
 
 		min_size = (available_size < count) ? available_size : count;
-		destination.write(block->data.get(), min_size);//Read block
+		destination.write(block->data.get() + ptr_index, min_size);//Read block
 
 		source += min_size;
 		count -= min_size;

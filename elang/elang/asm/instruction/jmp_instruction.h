@@ -42,6 +42,8 @@ namespace elang::easm::instruction{
 		virtual void execute() const override{
 			if (test_())//Passed test -- do jump
 				elang::vm::machine::cached_registers.instruction_pointer->write(operands_[0]->read_64bits());
+			else//Advance Instruction Pointer
+				elang::vm::machine::cached_registers.instruction_pointer->inc<uint64_type>(instruction_bytes());
 		}
 
 	protected:
