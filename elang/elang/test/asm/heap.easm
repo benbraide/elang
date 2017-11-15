@@ -57,7 +57,7 @@ called_reallocate:
 	mov rbx, rsi						;Value to write
 	syscall
 	mov rax, 2							;Write char
-	mov rbx, 10							;Value to write -- newline
+	mov rbx, '\n'						;Value to write -- newline
 	syscall
 	mov rax, 0x22						;Deallocate
 	mov rbx, [buffer]					;Memory address
