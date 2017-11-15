@@ -23,8 +23,9 @@ elang::vm::machine_register_manager::machine_register_manager(){
 	machine::cached_registers.compare_target = find("$cmpt");
 }
 
-elang::vm::machine_register *elang::vm::machine_register_manager::find(std::string key) const{
-	utils::to_lower(key);
+elang::vm::machine_register *elang::vm::machine_register_manager::find(std::string key, bool convert_case) const{
+	if (convert_case)
+		utils::to_lower(key);
 
 	auto entry = map_.find(key);
 	return ((entry == map_.end()) ? nullptr : entry->second.get());

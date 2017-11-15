@@ -338,11 +338,13 @@ struct asm_traverser{
 		if (id == "$")//Offset operand
 			return std::make_shared<elang::easm::instruction::offset_operand>();
 
-		auto reg = elang::vm::machine::register_manager.find(id);
-		if (reg == nullptr)//Label operand
-			return std::make_shared<elang::easm::instruction::label_operand>(id);
-
-		return std::make_shared<elang::easm::instruction::register_operand>(*reg);
+		if (id.size() < 5u){//Check for register
+			auto reg = elang::vm::machine::register_manager.find(id, true);
+			if (reg != nullptr)//Register operand
+				return std::make_shared<elang::easm::instruction::register_operand>(*reg);
+		}
+		
+		return std::make_shared<elang::easm::instruction::label_operand>(id);
 	}
 
 	instruction_operand_ptr_type operator()(const asm_absolute_identifier &ast) const{

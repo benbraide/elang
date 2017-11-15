@@ -18,7 +18,7 @@ namespace elang::vm{
 
 		machine_register_manager();
 
-		machine_register *find(std::string key) const;
+		machine_register *find(std::string key, bool convert_case = false) const;
 
 		const map_type &content() const;
 
