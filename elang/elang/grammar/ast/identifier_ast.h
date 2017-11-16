@@ -3,10 +3,9 @@
 #ifndef ELANG_IDENTIFIER_AST_H
 #define ELANG_IDENTIFIER_AST_H
 
-#include "../../vm/machine.h"
 #include "../../common/raii.h"
 
-#include "asm_ast.h"
+#include "ast_common.h"
 #include "operator_symbol_ast.h"
 
 ELANG_AST_BEGIN
@@ -124,8 +123,10 @@ struct operator_identifier_resolver{
 };
 
 struct identifier_traverser{
+	ELANG_AST_COMMON_TRAVERSER_BEGIN(identifier_traverser)
+
 	template <typename id_type>
-	elang::easm::instruction::operand_base::ptr_type operator()(const id_type &ast) const{
+	void operator()(const id_type &ast) const{
 		auto entry = identifier_resolver()(ast);
 		if (entry == nullptr)//Entry not found
 			throw elang::vm::compiler_error::undefined;
@@ -133,7 +134,10 @@ struct identifier_traverser{
 		if (entry->id() != elang::vm::symbol_entry_id::variable)
 			throw elang::vm::compiler_error::variable_expected;
 
-		return dynamic_cast<elang::vm::variable_symbol_entry *>(entry)->reference();
+		ELANG_AST_COMMON_TRAVERSER_OUT->value = entry;
+		ELANG_AST_COMMON_TRAVERSER_OUT->type = entry->type();
+		ELANG_AST_COMMON_TRAVERSER_OUT->is_constant = ELANG_AST_COMMON_TRAVERSER_OUT->type->is_const();
+		ELANG_AST_COMMON_TRAVERSER_OUT->is_static = ELANG_IS(entry->attributes(), elang::vm::symbol_entry_attribute::static_);
 	}
 };
 

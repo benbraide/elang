@@ -3,6 +3,8 @@
 #ifndef ELANG_RAII_H
 #define ELANG_RAII_H
 
+#include <functional>
+
 namespace elang::common{
 	class default_raii_base{};
 

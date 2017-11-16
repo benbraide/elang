@@ -5,12 +5,7 @@
 
 #include <climits>
 
-#include "../../common/numeric_literal_suffix.h"
-#include "../../common/string_quote_type.h"
-
-#include "../../vm/machine.h"
-
-#include "asm_ast.h"
+#include "ast_common.h"
 
 #define ELANG_AST_NUMERIC_SUFFIX boost::optional<elang::common::numeric_literal_suffix>
 
@@ -53,19 +48,25 @@ struct literal_value_traverser{
 			);
 	}
 
-	static void check_char_count(elang::common::string_quote_type quote, const std::string &value){
-		if (is_wide(quote)){
-			std::wstring escaped_value;
+	template <typename string_type>
+	static void get_char(const std::string &value, bool is_escaped, operand_value_info &out){
+		if (is_escaped){
+			string_type escaped_value;
 			elang::common::utils::escape_string(value.begin(), value.end(), escaped_value);
-			if (escaped_value.size() != 1u)
+			if (escaped_value.size() == 1u)
+				out.value = static_cast<__int64>(escaped_value[0]);
+			else//Error
 				throw elang::vm::compiler_error::bad_char;
 		}
-		else{//Narrow
-			std::string escaped_value;
-			elang::common::utils::escape_string(value.begin(), value.end(), escaped_value);
-			if (escaped_value.size() != 1u)
-				throw elang::vm::compiler_error::bad_char;
-		}
+		else if (value.size() == 1u)
+			out.value = static_cast<__int64>(value[0]);
+		else//Error
+			throw elang::vm::compiler_error::bad_char;
+
+		if (std::is_same<string_type, std::string>::value)
+			out.type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::char_);
+		else//Wide
+			out.type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::wchar_);
 	}
 
 	template <typename target_type, typename value_type>
@@ -83,54 +84,61 @@ struct literal_value_traverser{
 			throw elang::vm::compiler_error::number_too_big;
 	}
 
-	instruction_operand_ptr_type operator()(const integral_literal &ast) const{
-		elang::vm::machine_value_type_id value_type;
-		switch (ast.second.value_or(elang::common::numeric_literal_suffix::int32)){
+	ELANG_AST_COMMON_TRAVERSER_BEGIN(literal_value_traverser)
+
+	void operator()(const integral_literal &ast) const{
+		auto suffix = ast.second.value_or(elang::common::numeric_literal_suffix::int32);
+		switch (suffix){
 		case elang::common::numeric_literal_suffix::int8:
 			check_numeric_size<__int8>(ast.first);
-			value_type = elang::vm::machine_value_type_id::byte;
+			ELANG_AST_COMMON_TRAVERSER_OUT->type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::int8_);
 			break;
 		case elang::common::numeric_literal_suffix::uint8:
-			check_unsigned_integral_size<__int8>(ast.first);
-			value_type = elang::vm::machine_value_type_id::byte;
+			check_unsigned_integral_size<unsigned __int8>(ast.first);
+			ELANG_AST_COMMON_TRAVERSER_OUT->type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::uint8_);
 			break;
 		case elang::common::numeric_literal_suffix::int16:
 			check_numeric_size<__int16>(ast.first);
-			value_type = elang::vm::machine_value_type_id::word;
+			ELANG_AST_COMMON_TRAVERSER_OUT->type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::int16_);
 			break;
 		case elang::common::numeric_literal_suffix::uint16:
-			check_unsigned_integral_size<__int16>(ast.first);
-			value_type = elang::vm::machine_value_type_id::word;
+			check_unsigned_integral_size<unsigned __int16>(ast.first);
+			ELANG_AST_COMMON_TRAVERSER_OUT->type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::uint16_);
 			break;
 		case elang::common::numeric_literal_suffix::int32:
 			check_numeric_size<__int32>(ast.first);
-			value_type = elang::vm::machine_value_type_id::dword;
+			ELANG_AST_COMMON_TRAVERSER_OUT->type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::int32_);
 			break;
 		case elang::common::numeric_literal_suffix::uint32:
-			check_unsigned_integral_size<__int32>(ast.first);
-			value_type = elang::vm::machine_value_type_id::dword;
+			check_unsigned_integral_size<unsigned __int32>(ast.first);
+			ELANG_AST_COMMON_TRAVERSER_OUT->type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::uint32_);
 			break;
 		case elang::common::numeric_literal_suffix::int64:
 			check_numeric_size<__int64>(ast.first);
-			value_type = elang::vm::machine_value_type_id::qword;
+			ELANG_AST_COMMON_TRAVERSER_OUT->type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::int64_);
 			break;
 		case elang::common::numeric_literal_suffix::uint64:
-			check_unsigned_integral_size<__int64>(ast.first);
-			value_type = elang::vm::machine_value_type_id::qword;
+			check_unsigned_integral_size<unsigned __int64>(ast.first);
+			ELANG_AST_COMMON_TRAVERSER_OUT->type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::uint64_);
 			break;
 		default:
 			throw elang::vm::compiler_error::unreachable;
 			break;
 		}
 
-		return std::make_shared<elang::easm::instruction::constant_value_operand<__int64>>(value_type, ast.first);
+		ELANG_AST_COMMON_TRAVERSER_OUT->value = ast.first;
+		ELANG_AST_COMMON_TRAVERSER_OUT->is_constant = true;
+		ELANG_AST_COMMON_TRAVERSER_OUT->is_static = true;
 	}
 
-	instruction_operand_ptr_type operator()(const real_literal &ast) const{
-		return std::make_shared<elang::easm::instruction::constant_value_operand<long double>>(elang::vm::machine_value_type_id::float_, ast.first);
+	void operator()(const real_literal &ast) const{
+		ELANG_AST_COMMON_TRAVERSER_OUT->type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::float_);
+		ELANG_AST_COMMON_TRAVERSER_OUT->value = ast.first;
+		ELANG_AST_COMMON_TRAVERSER_OUT->is_constant = true;
+		ELANG_AST_COMMON_TRAVERSER_OUT->is_static = true;
 	}
 
-	instruction_operand_ptr_type operator()(const string_literal &ast) const{
+	void operator()(const string_literal &ast) const{
 		using instruction_operand_ptr_type = elang::easm::instruction::operand_base::ptr_type;
 		using instruction_ptr_type = elang::easm::instruction::base::ptr_type;
 
@@ -139,23 +147,23 @@ struct literal_value_traverser{
 			throw elang::vm::machine_error::no_register;
 
 		std::string value(ast.second.data(), ast.second.size());
-		if (!is_escaped(ast.first))
-			elang::common::utils::disable_string_escape(value);
+		auto is_wide = literal_value_traverser::is_wide(ast.first);
 
-		if (is_char(ast.first)){
-			check_char_count(ast.first, value);
-			auto value_type = (is_wide(ast.first) ? elang::vm::machine_value_type_id::word : elang::vm::machine_value_type_id::byte);
-			return std::make_shared<elang::easm::instruction::string_value_operand>(value_type, std::move(value));
-		}
+		if (!is_char(ast.first)){//String
+			if (!is_escaped(ast.first))
+				elang::common::utils::disable_string_escape(value);
 
-		auto label = elang::vm::machine::compiler.generate_label(elang::vm::label_type::constant);
-		{//Add string allocation
 			value.append("\\0");
+			ELANG_AST_COMMON_TRAVERSER_OUT->value = string_operand_value_info{
+				std::move(value),
+				is_wide
+			};
+
+			auto str_op = std::make_shared<elang::easm::instruction::string_value_operand>(std::move(value));
+			auto label = elang::vm::machine::compiler.generate_label(elang::vm::label_type::constant);
 
 			instruction_ptr_type instruction;
-			auto str_op = std::make_shared<elang::easm::instruction::string_value_operand>(std::move(value));
-
-			if (is_wide(ast.first))
+			if (is_wide)
 				instruction = std::make_shared<elang::easm::instruction::dw>(std::vector<instruction_operand_ptr_type>({ str_op }));
 			else//Byte
 				instruction = std::make_shared<elang::easm::instruction::db>(std::vector<instruction_operand_ptr_type>({ str_op }));
@@ -163,16 +171,21 @@ struct literal_value_traverser{
 			elang::vm::machine::compiler.section(elang::easm::section_id::rodata).add(nullptr, label);
 			elang::vm::machine::compiler.section(elang::easm::section_id::rodata).add(instruction);
 		}
+		else if (is_wide)//Wide char
+			get_char<std::wstring>(value, is_escaped(ast.first), ELANG_AST_COMMON_TRAVERSER_OUT_DREF);
+		else//Narrow char
+			get_char<std::string>(value, is_escaped(ast.first), ELANG_AST_COMMON_TRAVERSER_OUT_DREF);
 
-		return std::make_shared<elang::easm::instruction::label_operand>(label, std::vector<std::string>());
+		ELANG_AST_COMMON_TRAVERSER_OUT->is_constant = true;
+		ELANG_AST_COMMON_TRAVERSER_OUT->is_static = true;
 	}
 
-	instruction_operand_ptr_type operator()(const numeric_literal &ast) const{
-		return boost::apply_visitor(literal_value_traverser(), ast.value);
+	void operator()(const numeric_literal &ast) const{
+		boost::apply_visitor(literal_value_traverser(ELANG_AST_COMMON_TRAVERSER_OUT_DREF), ast.value);
 	}
 
-	instruction_operand_ptr_type operator()(const literal_value &ast) const{
-		return boost::apply_visitor(literal_value_traverser(), ast.value);
+	void operator()(const literal_value &ast) const{
+		boost::apply_visitor(literal_value_traverser(ELANG_AST_COMMON_TRAVERSER_OUT_DREF), ast.value);
 	}
 };
 

@@ -141,45 +141,50 @@ struct right_unary_term_traverser{
 };
 
 struct expression_traverser{
+	ELANG_AST_COMMON_TRAVERSER_BEGIN(expression_traverser)
+
 	template <typename ast_type>
-	instruction_operand_ptr_type operator ()(const ast_type &ast) const{
-		return nullptr;
+	void operator ()(const ast_type &ast) const{
+		
 	}
 
-	instruction_operand_ptr_type operator ()(const constant_value &ast) const{
-		return constant_value_traverser()(ast);
+	void operator ()(const constant_value &ast) const{
+		constant_value_traverser traverser(ELANG_AST_COMMON_TRAVERSER_OUT_DREF);
+		traverser(ast);
 	}
 
-	instruction_operand_ptr_type operator ()(const literal_value &ast) const{
-		return literal_value_traverser()(ast);
+	void operator ()(const literal_value &ast) const{
+		literal_value_traverser traverser(ELANG_AST_COMMON_TRAVERSER_OUT_DREF);
+		traverser(ast);
 	}
 
-	instruction_operand_ptr_type operator ()(const identifier_compatible &ast) const{
-		return identifier_traverser()(ast);
+	void operator ()(const identifier_compatible &ast) const{
+		identifier_traverser traverser(ELANG_AST_COMMON_TRAVERSER_OUT_DREF);
+		traverser(ast);
 	}
 
-	instruction_operand_ptr_type operator ()(const static_cast_expression &ast) const{
-		return nullptr;
+	void operator ()(const static_cast_expression &ast) const{
+		
 	}
 
-	instruction_operand_ptr_type operator ()(const non_operator_term &ast) const{
-		return boost::apply_visitor(expression_traverser(), ast.value);
+	void operator ()(const non_operator_term &ast) const{
+		boost::apply_visitor(expression_traverser(ELANG_AST_COMMON_TRAVERSER_OUT_DREF), ast.value);
 	}
 
-	instruction_operand_ptr_type operator ()(const term &ast) const{
-		return boost::apply_visitor(expression_traverser(), ast.value);
+	void operator ()(const term &ast) const{
+		boost::apply_visitor(expression_traverser(ELANG_AST_COMMON_TRAVERSER_OUT_DREF), ast.value);
 	}
 
-	instruction_operand_ptr_type operator ()(const grouped_expression &ast) const{
-		return expression_traverser()(ast.value);
+	void operator ()(const grouped_expression &ast) const{
+		operator ()(ast.value);
 	}
 
-	instruction_operand_ptr_type operator ()(const expression &ast) const{
-		return boost::apply_visitor(expression_traverser(), ast.value);
+	void operator ()(const expression &ast) const{
+		boost::apply_visitor(expression_traverser(ELANG_AST_COMMON_TRAVERSER_OUT_DREF), ast.value);
 	}
 
-	instruction_operand_ptr_type operator ()(const non_comma_expression &ast) const{
-		return boost::apply_visitor(expression_traverser(), ast.value);
+	void operator ()(const non_comma_expression &ast) const{
+		boost::apply_visitor(expression_traverser(ELANG_AST_COMMON_TRAVERSER_OUT_DREF), ast.value);
 	}
 };
 
