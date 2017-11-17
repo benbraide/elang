@@ -23,6 +23,8 @@ namespace elang::vm{
 		typedef std::shared_ptr<type_info> ptr_type;
 		typedef std::shared_ptr<symbol_entry> symbol_ptr_type;
 
+		typedef elang::common::primitive_type_id primitive_id_type;
+
 		enum class attribute_type : unsigned int{
 			nil					= (0 << 0x0000),
 			const_				= (1 << 0x0000),
@@ -42,6 +44,8 @@ namespace elang::vm{
 		virtual ptr_type clone(attribute_type attributes) const = 0;
 
 		virtual machine_value_type_id id() const;
+
+		virtual primitive_id_type primitive_id() const;
 
 		virtual attribute_type attributes() const;
 
@@ -93,13 +97,13 @@ namespace elang::vm{
 
 	class primitive_type_info : public type_info{
 	public:
-		typedef elang::common::primitive_type_id id_type;
-
-		primitive_type_info(id_type id, attribute_type attributes);
+		primitive_type_info(primitive_id_type id, attribute_type attributes);
 
 		virtual ptr_type clone(attribute_type attributes) const override;
 
 		virtual machine_value_type_id id() const override;
+
+		virtual primitive_id_type primitive_id() const override;
 
 		virtual size_type size() const override;
 
@@ -122,7 +126,7 @@ namespace elang::vm{
 	private:
 		virtual std::string mangle_() const;
 
-		id_type id_;
+		primitive_id_type id_;
 	};
 
 	class user_type_info : public type_info{

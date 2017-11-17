@@ -63,50 +63,51 @@ elang::vm::machine_register *elang::vm::register_store::get(value_type_id_type v
 	
 	switch (value_type){
 	case value_type_id_type::byte:
-		used_list_.push_back(entry->byte);
 		return entry->byte;
 	case value_type_id_type::word:
-		used_list_.push_back(entry->word);
 		return entry->word;
 	case value_type_id_type::dword:
-		used_list_.push_back(entry->dword);
 		return entry->dword;
 	default:
 		break;
 	}
 
-	used_list_.push_back(entry->qword);
 	return entry->qword;
 }
 
-elang::vm::machine_register *elang::vm::register_store::get_used(value_type_id_type value_type){
-	if (used_list_.empty())
-		return nullptr;
+elang::vm::machine_register *elang::vm::register_store::convert(machine_register &value, value_type_id_type value_type){
+	if (value.type_id() == value_type)
+		return &value;//No conversion needed
 
-	auto entry = used_list_[0];
-	used_list_.erase(used_list_.begin());
-
-	if (entry->type_id() != value_type_id_type::float_){
-		available_list_.push_back(integral_used_list_[0]);
-		integral_used_list_.erase(integral_used_list_.begin());
+	if (value_type == value_type_id_type::float_){//Convert from integral to float
+		put(value);
+		return get(value_type);
 	}
-	else//Float
-		available_float_list_.push_back(entry);
 
-	if (value_type == value_type_id_type::unknown || entry->type_id() == value_type)
-		return entry;//No conversion necessary
+	auto iter = used_integral_iter_(value);
+	if (iter == integral_used_list_.end())
+		return nullptr;//Error
 
-	if (value_type < entry->type_id())//Warn
-		machine::compiler.add_warning(compiler_warning::type_coercion);
+	switch (value_type){//Convert to other integral
+	case value_type_id_type::byte:
+		return (*iter)->byte;
+	case value_type_id_type::word:
+		return (*iter)->word;
+	case value_type_id_type::dword:
+		return (*iter)->dword;
+	default:
+		break;
+	}
 
-	auto target_reg = get_(value_type);
-	auto lop = std::make_shared<elang::easm::instruction::register_operand>(*target_reg);
-	auto rop = std::make_shared<elang::easm::instruction::register_operand>(*entry);
+	return (*iter)->qword;
+}
 
-	auto instruction = std::make_shared<elang::easm::instruction::extended_mov>(std::vector<elang::easm::instruction::operand_base::ptr_type>({ lop, rop }));
-	elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);//Add conversion instruction
-
-	return target_reg;
+void elang::vm::register_store::put(machine_register &value){
+	auto iter = used_integral_iter_(value);
+	if (iter != integral_used_list_.end()){//Add to available list
+		available_list_.push_back(*iter);
+		integral_used_list_.erase(iter);
+	}
 }
 
 void elang::vm::register_store::init_(){
@@ -157,21 +158,11 @@ void elang::vm::register_store::init_(){
 	available_float_list_.push_back(machine::register_manager.find("xmm3"));
 }
 
-elang::vm::machine_register *elang::vm::register_store::get_(value_type_id_type value_type){
-	if (value_type == value_type_id_type::float_)
-		return available_float_list_[0];
-
-	auto entry = available_list_[0];
-	switch (value_type){
-	case value_type_id_type::byte:
-		return entry->byte;
-	case value_type_id_type::word:
-		return entry->word;
-	case value_type_id_type::dword:
-		return entry->dword;
-	default:
-		break;
+elang::vm::register_store::info_list_type::iterator elang::vm::register_store::used_integral_iter_(machine_register &value){
+	for (auto iter = integral_used_list_.begin(); iter != integral_used_list_.end(); ++iter){
+		if ((*iter)->byte == &value || (*iter)->word == &value || (*iter)->dword == &value || (*iter)->qword == &value)
+			return iter;//Match found
 	}
 
-	return entry->qword;
+	return integral_used_list_.end();
 }

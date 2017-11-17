@@ -139,13 +139,6 @@ struct literal_value_traverser{
 	}
 
 	void operator()(const string_literal &ast) const{
-		using instruction_operand_ptr_type = elang::easm::instruction::operand_base::ptr_type;
-		using instruction_ptr_type = elang::easm::instruction::base::ptr_type;
-
-		auto reg = elang::vm::machine::compiler.store().get(elang::vm::machine_value_type_id::qword);
-		if (reg == nullptr)//Error
-			throw elang::vm::machine_error::no_register;
-
 		std::string value(ast.second.data(), ast.second.size());
 		auto is_wide = literal_value_traverser::is_wide(ast.first);
 
@@ -154,15 +147,10 @@ struct literal_value_traverser{
 				elang::common::utils::disable_string_escape(value);
 
 			value.append("\\0");
-			ELANG_AST_COMMON_TRAVERSER_OUT->value = string_operand_value_info{
-				std::move(value),
-				is_wide
-			};
-
 			auto str_op = std::make_shared<elang::easm::instruction::string_value_operand>(std::move(value));
 			auto label = elang::vm::machine::compiler.generate_label(elang::vm::label_type::constant);
 
-			instruction_ptr_type instruction;
+			elang::easm::instruction::base::ptr_type instruction;
 			if (is_wide)
 				instruction = std::make_shared<elang::easm::instruction::dw>(std::vector<instruction_operand_ptr_type>({ str_op }));
 			else//Byte
@@ -170,6 +158,11 @@ struct literal_value_traverser{
 
 			elang::vm::machine::compiler.section(elang::easm::section_id::rodata).add(nullptr, label);
 			elang::vm::machine::compiler.section(elang::easm::section_id::rodata).add(instruction);
+
+			ELANG_AST_COMMON_TRAVERSER_OUT->value = string_operand_value_info{
+				std::move(label),
+				is_wide
+			};
 		}
 		else if (is_wide)//Wide char
 			get_char<std::wstring>(value, is_escaped(ast.first), ELANG_AST_COMMON_TRAVERSER_OUT_DREF);

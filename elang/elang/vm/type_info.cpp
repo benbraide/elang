@@ -12,6 +12,10 @@ elang::vm::machine_value_type_id elang::vm::type_info::id() const{
 	return machine_value_type_id::unknown;
 }
 
+elang::vm::type_info::primitive_id_type elang::vm::type_info::primitive_id() const{
+	return primitive_id_type::auto_;
+}
+
 elang::vm::type_info::attribute_type elang::vm::type_info::attributes() const{
 	return attributes_;
 }
@@ -97,7 +101,7 @@ bool elang::vm::type_info::is_compatible_(const type_info &type) const{
 	return (is_vref() == type.is_vref() && (!is_ref() || type.is_ref()));
 }
 
-elang::vm::primitive_type_info::primitive_type_info(id_type id, attribute_type attributes)
+elang::vm::primitive_type_info::primitive_type_info(primitive_id_type id, attribute_type attributes)
 	: type_info(attributes), id_(id){}
 
 elang::vm::type_info::ptr_type elang::vm::primitive_type_info::clone(attribute_type attributes) const{
@@ -127,23 +131,27 @@ elang::vm::machine_value_type_id elang::vm::primitive_type_info::id() const{
 	return machine_value_type_id::unknown;
 }
 
+elang::vm::type_info::primitive_id_type elang::vm::primitive_type_info::primitive_id() const{
+	return id_;
+}
+
 elang::vm::type_info::size_type elang::vm::primitive_type_info::size() const{
 	switch (id_){
-	case id_type::char_:
-	case id_type::int8_:
-	case id_type::uint8_:
+	case primitive_id_type::char_:
+	case primitive_id_type::int8_:
+	case primitive_id_type::uint8_:
 		return 1u;
-	case id_type::wchar_:
-	case id_type::int16_:
-	case id_type::uint16_:
+	case primitive_id_type::wchar_:
+	case primitive_id_type::int16_:
+	case primitive_id_type::uint16_:
 		return 2u;
-	case id_type::int32_:
-	case id_type::uint32_:
+	case primitive_id_type::int32_:
+	case primitive_id_type::uint32_:
 		return 4u;
-	case id_type::int64_:
-	case id_type::uint64_:
-	case id_type::float_:
-	case id_type::nullptr_:
+	case primitive_id_type::int64_:
+	case primitive_id_type::uint64_:
+	case primitive_id_type::float_:
+	case primitive_id_type::nullptr_:
 		return 8u;
 	default:
 		break;
@@ -171,56 +179,56 @@ bool elang::vm::primitive_type_info::is_compatible(const type_info &type) const{
 }
 
 bool elang::vm::primitive_type_info::is_null_pointer() const{
-	return (id_ == id_type::nullptr_);
+	return (id_ == primitive_id_type::nullptr_);
 }
 
 bool elang::vm::primitive_type_info::is_void() const{
-	return (id_ == id_type::void_);
+	return (id_ == primitive_id_type::void_);
 }
 
 bool elang::vm::primitive_type_info::is_bool() const{
-	return (id_ == id_type::bool_);
+	return (id_ == primitive_id_type::bool_);
 }
 
 bool elang::vm::primitive_type_info::is_numeric() const{
-	return (id_ >= id_type::char_ && id_ <= id_type::float_);
+	return (id_ >= primitive_id_type::char_ && id_ <= primitive_id_type::float_);
 }
 
 bool elang::vm::primitive_type_info::is_integral() const{
-	return (id_ >= id_type::char_ && id_ <= id_type::uint64_);
+	return (id_ >= primitive_id_type::char_ && id_ <= primitive_id_type::uint64_);
 }
 
 std::string elang::vm::primitive_type_info::mangle_() const{
 	switch (id_){
-	case id_type::auto_:
+	case primitive_id_type::auto_:
 		return "a";
-	case id_type::void_:
+	case primitive_id_type::void_:
 		return "v";
-	case id_type::nullptr_:
+	case primitive_id_type::nullptr_:
 		return "n";
-	case id_type::bool_:
+	case primitive_id_type::bool_:
 		return "b";
-	case id_type::char_:
+	case primitive_id_type::char_:
 		return "c";
-	case id_type::wchar_:
+	case primitive_id_type::wchar_:
 		return "w";
-	case id_type::int8_:
+	case primitive_id_type::int8_:
 		return "g";
-	case id_type::uint8_:
+	case primitive_id_type::uint8_:
 		return "d";
-	case id_type::int16_:
+	case primitive_id_type::int16_:
 		return "s";
-	case id_type::uint16_:
+	case primitive_id_type::uint16_:
 		return "e";
-	case id_type::int32_:
+	case primitive_id_type::int32_:
 		return "i";
-	case id_type::uint32_:
+	case primitive_id_type::uint32_:
 		return "u";
-	case id_type::int64_:
+	case primitive_id_type::int64_:
 		return "l";
-	case id_type::uint64_:
+	case primitive_id_type::uint64_:
 		return "q";
-	case id_type::float_:
+	case primitive_id_type::float_:
 		return "f";
 	default:
 		break;

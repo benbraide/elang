@@ -25,6 +25,7 @@ namespace elang::vm{
 		type_expected,
 		storage_expected,
 		variable_expected,
+		invalid_operation,
 		unreachable,
 	};
 

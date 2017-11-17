@@ -39,12 +39,14 @@ namespace elang::vm{
 
 		machine_register *get(value_type_id_type value_type);
 
-		machine_register *get_used(value_type_id_type value_type);
+		machine_register *convert(machine_register &value, value_type_id_type value_type);
+
+		void put(machine_register &value);
 
 	private:
 		void init_();
 
-		machine_register *get_(value_type_id_type value_type);
+		info_list_type::iterator used_integral_iter_(machine_register &value);
 
 		cache_list_type cache_;
 		info_list_type available_list_;

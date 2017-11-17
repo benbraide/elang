@@ -163,6 +163,54 @@ struct expression_traverser{
 		traverser(ast);
 	}
 
+	void operator ()(const factor_expression &ast) const{
+		operand_value_info other;
+		expression_traverser traverser(ELANG_AST_COMMON_TRAVERSER_OUT_DREF), other_traverser(other);
+
+		traverser(ast.first);//Evaluate left
+		auto this_ = ELANG_AST_COMMON_TRAVERSER_OUT;
+
+		for (auto &other_ast : ast.second){//Evaluate cumulative
+			other_traverser(other_ast.second);
+			if (call_binary_operator(other_ast.first, other))
+				continue;//Operator called
+
+			if (this_->is_constant && this_->is_static && other.is_constant && other.is_static && this_->type->is_numeric() && other.type->is_numeric()){//Static evaluation
+				if (this_->type->is_integral() && other.type->is_integral()){//Integral evaluation
+					this_->value = (boost::apply_visitor(get_int_value(), this_->value) * boost::apply_visitor(get_int_value(), other.value));
+					this_->type = ((this_->type->primitive_id() < other.type->primitive_id()) ? other.type : this_->type);
+				}
+				else{//Float evaluation
+					this_->value = (boost::apply_visitor(get_float_value(), this_->value) * boost::apply_visitor(get_float_value(), other.value));
+					this_->type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::float_);
+				}
+			}
+			else if (this_->type->is_numeric() && other.type->is_numeric()){//Generate instruction
+				auto left_reg = load_register::load(*this_);
+				auto right_reg = load_register::load(other);
+
+				if (left_reg->type_id() < right_reg->type_id())//Type conversion
+					left_reg = load_register::convert_register(*left_reg, right_reg->type_id());
+				else if (right_reg->type_id() < left_reg->type_id())//Type conversion
+					right_reg = load_register::convert_register(*right_reg, left_reg->type_id());
+
+				auto left_reg_op = std::make_shared<elang::easm::instruction::register_operand>(*left_reg);
+				auto right_reg_op = std::make_shared<elang::easm::instruction::register_operand>(*right_reg);
+				auto instruction = std::make_shared<elang::easm::instruction::mult>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
+
+				elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
+				elang::vm::machine::compiler.store().put(*right_reg);
+
+				this_->value = left_reg;//Update value
+				this_->is_constant = this_->is_static = false;//Reset
+			}
+			else//Error
+				throw elang::vm::compiler_error::invalid_operation;
+
+			other.is_constant = other.is_static = false;//Reset
+		}
+	}
+
 	void operator ()(const static_cast_expression &ast) const{
 		
 	}
@@ -185,6 +233,14 @@ struct expression_traverser{
 
 	void operator ()(const non_comma_expression &ast) const{
 		boost::apply_visitor(expression_traverser(ELANG_AST_COMMON_TRAVERSER_OUT_DREF), ast.value);
+	}
+
+	bool valid_binary_operation(elang::common::operator_id, operand_value_info &other) const{
+		return true;
+	}
+
+	bool call_binary_operator(elang::common::operator_id, operand_value_info &other) const{
+		return false;
 	}
 };
 
