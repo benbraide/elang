@@ -24,6 +24,7 @@
 #include "../../asm/instruction/call_instruction.h"
 #include "../../asm/instruction/ret_instruction.h"
 #include "../../asm/instruction/jmp_instruction.h"
+#include "../../asm/instruction/set_instruction.h"
 #include "../../asm/instruction/loop_instruction.h"
 #include "../../asm/instruction/mov_instruction.h"
 #include "../../asm/instruction/lea_instruction.h"

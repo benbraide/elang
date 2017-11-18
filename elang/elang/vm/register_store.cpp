@@ -79,7 +79,7 @@ elang::vm::machine_register *elang::vm::register_store::convert(machine_register
 	if (value.type_id() == value_type)
 		return &value;//No conversion needed
 
-	if (value_type == value_type_id_type::float_){//Convert from integral to float
+	if (value_type == value_type_id_type::float_ || value.type_id() == value_type_id_type::float_){//Convert from | to float
 		put(value);
 		return get(value_type);
 	}

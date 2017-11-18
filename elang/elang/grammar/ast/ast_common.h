@@ -62,6 +62,21 @@ struct get_int_value{
 	}
 };
 
+struct get_uint_value{
+	unsigned __int64 operator ()(__int64 value) const{
+		return static_cast<unsigned __int64>(value);
+	}
+
+	unsigned __int64 operator ()(long double value) const{
+		return static_cast<unsigned __int64>(value);
+	}
+
+	template <typename value_type>
+	unsigned __int64 operator ()(const value_type &value) const{
+		throw elang::vm::compiler_error::unreachable;
+	}
+};
+
 struct get_float_value{
 	long double operator ()(__int64 value) const{
 		return static_cast<long double>(value);
@@ -94,6 +109,9 @@ struct load_register{
 		auto converted = elang::vm::machine::compiler.store().convert(reg, value_type);
 		if (converted == nullptr)//Error
 			throw elang::vm::machine_error::no_register;
+
+		if (converted == &reg)//No conversion necessary
+			return converted;
 
 		auto lreg_op = std::make_shared<elang::easm::instruction::register_operand>(*converted);
 		auto rreg_op = std::make_shared<elang::easm::instruction::register_operand>(reg);

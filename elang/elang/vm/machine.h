@@ -19,6 +19,7 @@ namespace elang::vm{
 		no_start_label,
 		no_instruction,
 		no_register,
+		division_by_zero,
 	};
 
 	class machine{
