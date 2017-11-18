@@ -59,6 +59,8 @@ namespace elang::vm{
 
 		virtual bool is_same(const type_info &type) const = 0;
 
+		virtual bool is_same_unmodified(const type_info &type) const = 0;
+
 		virtual bool is_same_object(const type_info &type) const;
 
 		virtual bool is_compatible(const type_info &type) const;
@@ -111,6 +113,8 @@ namespace elang::vm{
 
 		virtual bool is_same(const type_info &type) const override;
 
+		virtual bool is_same_unmodified(const type_info &type) const override;
+
 		virtual bool is_compatible(const type_info &type) const override;
 
 		virtual bool is_null_pointer() const override;
@@ -141,6 +145,8 @@ namespace elang::vm{
 
 		virtual bool is_same(const type_info &type) const override;
 
+		virtual bool is_same_unmodified(const type_info &type) const override;
+
 		virtual bool is_compatible(const type_info &type) const override;
 
 	private:
@@ -160,6 +166,8 @@ namespace elang::vm{
 		virtual std::string mangle() const override;
 
 		virtual bool is_same(const type_info &type) const override;
+
+		virtual bool is_same_unmodified(const type_info &type) const override;
 
 		virtual bool is_compatible(const type_info &type) const override;
 
@@ -183,6 +191,8 @@ namespace elang::vm{
 
 		virtual bool is_same(const type_info &type) const override;
 
+		virtual bool is_same_unmodified(const type_info &type) const override;
+
 		virtual bool is_array() const override;
 
 	private:
@@ -205,6 +215,8 @@ namespace elang::vm{
 		virtual std::string mangle() const override;
 
 		virtual bool is_same(const type_info &type) const override;
+
+		virtual bool is_same_unmodified(const type_info &type) const override;
 
 		virtual bool is_function() const override;
 
@@ -236,6 +248,8 @@ namespace elang::vm{
 		virtual std::string mangle() const override;
 
 		virtual bool is_same(const type_info &type) const override;
+
+		virtual bool is_same_unmodified(const type_info &type) const override;
 
 		virtual bool is_compatible(const type_info &type) const override;
 

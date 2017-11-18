@@ -48,6 +48,13 @@ struct operand_value_info{
 };
 
 struct get_int_value{
+	__int64 operator ()(elang::common::constant_value value) const{
+		if (value != common::constant_value::nullptr_)
+			throw elang::vm::compiler_error::unreachable;
+		return 0;
+		
+	}
+
 	__int64 operator ()(__int64 value) const{
 		return value;
 	}

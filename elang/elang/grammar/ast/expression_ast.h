@@ -636,7 +636,76 @@ struct expression_traverser{
 	}
 
 	void operator ()(const static_cast_expression &ast) const{
-		
+		operator ()(ast.second);
+		if (call_cast_operator(ast.first))
+			return;//Operator called
+
+		auto this_ = ELANG_AST_COMMON_TRAVERSER_OUT;
+		auto type_value = type_traverser()(ast.first);
+
+		if (type_value->is_ref()){
+			if ((this_->type->is_const() && !type_value->is_const()) || !this_->type->is_ref())
+				throw elang::vm::compiler_error::invalid_cast;
+
+			if (type_value->is_same_unmodified(*this_->type))
+				return;//No conversion needed
+
+			return;
+		}
+
+		if (type_value->is_vref()){
+			if ((type_value->is_const() || !this_->type->is_const()) && (this_->type->is_ref() || this_->type->is_vref()) && type_value->is_same_unmodified(*this_->type))
+				this_->type = type_value;
+			else//Error
+				throw elang::vm::compiler_error::invalid_cast;
+			return;
+		}
+
+		if (type_value->is_const())
+			throw elang::vm::compiler_error::invalid_cast;
+
+		if (this_->is_constant && this_->is_static && this_->type->is_numeric()){
+			if (this_->type->primitive_id() != type_value->primitive_id()){//Do conversion if types are different
+				if (type_value->is_integral()){
+					this_->value = boost::apply_visitor(get_int_value(), this_->value);
+					this_->type = elang::vm::machine::compiler.find_primitive_type(type_value->primitive_id());
+				}
+				else if (type_value->is_numeric()){
+					this_->value = boost::apply_visitor(get_float_value(), this_->value);
+					this_->type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::float_);
+				}
+				else//Error
+					throw elang::vm::compiler_error::invalid_cast;
+			}
+		}
+		else if (this_->type->is_numeric() && type_value->is_numeric()){
+			if (this_->type->primitive_id() != type_value->primitive_id()){
+				auto left_reg = elang::vm::machine::compiler.store().get(type_value->id());
+				auto right_reg = load_register::load(ELANG_AST_COMMON_TRAVERSER_OUT_DREF);
+
+				auto lreg_op = std::make_shared<elang::easm::instruction::register_operand>(*left_reg);
+				auto rreg_op = std::make_shared<elang::easm::instruction::register_operand>(*right_reg);
+
+				auto instruction = std::make_shared<elang::easm::instruction::extended_mov>(std::vector<instruction_operand_ptr_type>{ lreg_op, rreg_op });
+				elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
+				elang::vm::machine::compiler.store().put(*right_reg);
+
+				this_->value = left_reg;
+				this_->type = elang::vm::machine::compiler.find_primitive_type(type_value->primitive_id());
+			}
+			else//No conversion necessary
+				this_->value = load_register::load(ELANG_AST_COMMON_TRAVERSER_OUT_DREF);
+		}
+		else if (type_value->is_pointer() && (this_->type->is_pointer() || this_->type->is_null_pointer())){
+			if (this_->type->is_null_pointer() || this_->type->underlying_type()->is_void() || type_value->underlying_type()->is_void()){
+				this_->value = load_register::load(ELANG_AST_COMMON_TRAVERSER_OUT_DREF);
+				this_->type = type_value;
+			}
+			else//Error
+				throw elang::vm::compiler_error::invalid_cast;
+		}
+		else//Error
+			throw elang::vm::compiler_error::invalid_cast;
 	}
 
 	void operator ()(const non_operator_term &ast) const{
@@ -659,8 +728,8 @@ struct expression_traverser{
 		boost::apply_visitor(*this, ast.value);
 	}
 
-	bool valid_binary_operation(elang::common::operator_id, operand_value_info &other) const{
-		return true;
+	bool call_cast_operator(const type &target) const{
+		return false;
 	}
 
 	bool call_binary_operator(elang::common::operator_id, operand_value_info &other) const{

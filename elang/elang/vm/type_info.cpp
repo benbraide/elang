@@ -172,6 +172,11 @@ bool elang::vm::primitive_type_info::is_same(const type_info &type) const{
 	return (basic_type != nullptr && basic_type->id_ == id_);
 }
 
+bool elang::vm::primitive_type_info::is_same_unmodified(const type_info &type) const{
+	auto basic_type = dynamic_cast<const primitive_type_info *>(&type);
+	return (basic_type != nullptr && basic_type->id_ == id_);
+}
+
 bool elang::vm::primitive_type_info::is_compatible(const type_info &type) const{
 	if (is_ref())
 		return is_same(type);
@@ -260,6 +265,11 @@ bool elang::vm::user_type_info::is_same(const type_info &type) const{
 	return (basic_type != nullptr && basic_type->value_ == value_);
 }
 
+bool elang::vm::user_type_info::is_same_unmodified(const type_info &type) const{
+	auto basic_type = dynamic_cast<const user_type_info *>(&type);
+	return (basic_type != nullptr && basic_type->value_ == value_);
+}
+
 bool elang::vm::user_type_info::is_compatible(const type_info &type) const{
 	if (is_ref())
 		return is_same(type);
@@ -289,6 +299,10 @@ bool elang::vm::pointer_type_info::is_same(const type_info &type) const{
 	if (!is_same_(type))
 		return false;
 
+	return (type.is_pointer() && type.underlying_type()->is_const() == value_->is_const() && type.underlying_type()->is_same(*value_));
+}
+
+bool elang::vm::pointer_type_info::is_same_unmodified(const type_info &type) const{
 	return (type.is_pointer() && type.underlying_type()->is_const() == value_->is_const() && type.underlying_type()->is_same(*value_));
 }
 
@@ -325,6 +339,10 @@ bool elang::vm::array_type_info::is_same(const type_info &type) const{
 	return (type.is_array() && type.underlying_type()->is_same(*value_));
 }
 
+bool elang::vm::array_type_info::is_same_unmodified(const type_info &type) const{
+	return (type.is_array() && type.underlying_type()->is_same(*value_));
+}
+
 bool elang::vm::array_type_info::is_array() const{
 	return true;
 }
@@ -350,6 +368,10 @@ std::string elang::vm::function_type_info::mangle() const{
 bool elang::vm::function_type_info::is_same(const type_info &type) const{
 	auto function_type = dynamic_cast<const function_type_info *>(&type);
 	return (function_type != nullptr && is_same_return_type(*function_type) && is_same_parameters(*function_type));
+}
+
+bool elang::vm::function_type_info::is_same_unmodified(const type_info &type) const{
+	return is_same(type);
 }
 
 bool elang::vm::function_type_info::is_function() const{
@@ -414,6 +436,10 @@ bool elang::vm::variadic_type_info::is_same(const type_info &type) const{
 	if (!is_same_(type))
 		return false;
 
+	return (type.is_variadic() && type.underlying_type()->is_const() == value_->is_const() && type.underlying_type()->is_same(*value_));
+}
+
+bool elang::vm::variadic_type_info::is_same_unmodified(const type_info &type) const{
 	return (type.is_variadic() && type.underlying_type()->is_const() == value_->is_const() && type.underlying_type()->is_same(*value_));
 }
 
