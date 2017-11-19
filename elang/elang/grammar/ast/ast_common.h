@@ -49,8 +49,20 @@ struct operand_value_info{
 
 struct get_int_value{
 	__int64 operator ()(elang::common::constant_value value) const{
-		if (value != common::constant_value::nullptr_)
+		switch (value){
+		case elang::common::constant_value::false_:
+			return 0;
+		case elang::common::constant_value::true_:
+			return 1;
+		case elang::common::constant_value::indeterminate:
+			return -1;
+		case elang::common::constant_value::nullptr_:
+			return 0;
+		default:
 			throw elang::vm::compiler_error::unreachable;
+			break;
+		}
+
 		return 0;
 		
 	}
@@ -159,10 +171,28 @@ struct load_register{
 		auto reg = get_register(value_type);
 		auto reg_op = std::make_shared<elang::easm::instruction::register_operand>(*reg);
 
-		auto label_op = elang::vm::machine::compiler.get_constant_operand(value);
-		auto instruction = std::make_shared<elang::easm::instruction::mov>(std::vector<instruction_operand_ptr_type>{ reg_op, label_op });
+		instruction_operand_ptr_type const_op;
+		switch (value){
+		case elang::common::constant_value::false_:
+			const_op = std::make_shared<elang::easm::instruction::constant_value_operand<__int64>>(0);
+			break;
+		case elang::common::constant_value::true_:
+			const_op = std::make_shared<elang::easm::instruction::constant_value_operand<__int64>>(1);
+			break;
+		case elang::common::constant_value::indeterminate:
+			const_op = std::make_shared<elang::easm::instruction::constant_value_operand<__int64>>(-1);
+			break;
+		case elang::common::constant_value::nullptr_:
+			const_op = std::make_shared<elang::easm::instruction::constant_value_operand<__int64>>(0);
+			break;
+		default:
+			throw elang::vm::compiler_error::unreachable;
+			break;
+		}
 
+		auto instruction = std::make_shared<elang::easm::instruction::mov>(std::vector<instruction_operand_ptr_type>{ reg_op, const_op });
 		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
+
 		return reg;
 	}
 

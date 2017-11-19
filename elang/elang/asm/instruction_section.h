@@ -19,6 +19,7 @@ namespace elang::easm{
 		text,
 		type,
 		meta,
+		disabled,
 	};
 
 	class instruction_section_base{
@@ -63,6 +64,8 @@ namespace elang::easm{
 		};
 
 		explicit instruction_section_base(id_type id);
+
+		virtual void boot();
 
 		virtual id_type id() const;
 
@@ -124,6 +127,8 @@ namespace elang::easm{
 
 		explicit instruction_section(id_type id);
 
+		virtual void boot() override;
+
 		virtual void write_memory() const override;
 
 		virtual instruction_label *add(instruction_label *parent, const std::string &label) override;
@@ -145,6 +150,19 @@ namespace elang::easm{
 		instruction_list_type instruction_list_;
 		label_list_type label_list_;
 		range_map_type range_map_;
+	};
+
+	class disabled_instruction_section : public instruction_section_base{
+	public:
+		using instruction_section_base::add;
+
+		disabled_instruction_section();
+
+		virtual void write_memory() const override;
+
+		virtual instruction_label *add(instruction_label *parent, const std::string &label) override;
+
+		virtual void add(instruction_ptr_type instruction) override;
 	};
 }
 

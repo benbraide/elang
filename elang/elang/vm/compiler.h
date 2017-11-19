@@ -39,8 +39,29 @@ namespace elang::vm{
 		constant,
 	};
 
+	enum class compiler_state : unsigned int{
+		nil					= (0 << 0x0000),
+		compiling			= (1 << 0x0000),
+		short_circuit		= (1 << 0x0001),
+	};
+
+	enum class mangle_target{
+		pointer,
+		array_,
+		function_,
+		variadic,
+		const_,
+		ref_,
+		vref,
+		operator_,
+		constructor,
+		destructor,
+	};
+
 	class compiler{
 	public:
+		typedef compiler_state state_type;
+
 		typedef type_info::ptr_type type_info_ptr_type;
 		typedef elang::common::primitive_type_id primitive_type_id_type;
 
@@ -51,10 +72,7 @@ namespace elang::vm{
 		typedef elang::easm::instruction_section_base section_type;
 		typedef std::shared_ptr<section_type> section_ptr_type;
 
-		typedef std::vector<machine_register *> register_list_type;
 		typedef std::unordered_map<section_id_type, section_ptr_type> section_map_type;
-
-		typedef std::unordered_map<elang::common::constant_value, instruction_operand_ptr_type> constant_value_map_type;
 		typedef std::unordered_map<elang::common::primitive_type_id, type_info_ptr_type> primitive_type_map_type;
 
 		struct current_context_info_type{
@@ -65,30 +83,27 @@ namespace elang::vm{
 		struct info_type{
 			std::shared_ptr<namespace_symbol_entry> global_context;
 			current_context_info_type current_context;
-			const symbol_entry *symbol_mangling;
 		};
 
 		compiler();
 
+		void boot();
+
+		void begin_compilation();
+
+		void end_compilation();
+
 		bool is_compiling() const;
+
+		void set_short_circuit(bool enabled = true);
 
 		register_store &store();
 
 		section_type &section(section_id_type id);
 
-		void push_register(machine_register &reg);
-
-		machine_register *pop_register();
-
-		void reset_expression_type();
-
-		void set_expression_type(machine_value_type_id left, machine_value_type_id right);
-
-		machine_value_type_id get_expression_type() const;
-
 		std::string generate_label(label_type type);
 
-		instruction_operand_ptr_type get_constant_operand(elang::common::constant_value type);
+		std::string mangle(mangle_target target) const;
 
 		void reset_warnings();
 
@@ -101,15 +116,16 @@ namespace elang::vm{
 		info_type &info();
 
 	private:
+		state_type states_;
 		register_store store_;
 		section_map_type section_map_;
-		register_list_type register_list_;
-		machine_value_type_id expression_type_;
-		constant_value_map_type constant_value_map_;
 		primitive_type_map_type primitive_type_map_;
 		unsigned int label_count_;
+		unsigned int short_circuit_count_;
 		info_type info_;
 	};
+
+	ELANG_MAKE_OPERATORS(compiler_state);
 }
 
 #endif /* !ELANG_COMPILER_H */

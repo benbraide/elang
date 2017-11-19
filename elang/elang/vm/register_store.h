@@ -37,6 +37,8 @@ namespace elang::vm{
 		typedef std::vector<info_type *> info_list_type;
 		typedef std::vector<machine_register *> raw_info_list_type;
 
+		void boot();
+
 		machine_register *get(value_type_id_type value_type);
 
 		machine_register *convert(machine_register &value, value_type_id_type value_type);
@@ -50,10 +52,9 @@ namespace elang::vm{
 
 		cache_list_type cache_;
 		info_list_type available_list_;
-		raw_info_list_type available_float_list_;
-		raw_info_list_type used_list_;
 		info_list_type integral_used_list_;
-		bool initialized_ = false;
+		raw_info_list_type available_float_list_;
+		raw_info_list_type float_used_list_;
 	};
 }
 

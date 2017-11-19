@@ -35,20 +35,11 @@ void elang::vm::symbol_entry::define(){
 }
 
 std::string elang::vm::named_symbol_entry::mangle() const{
-	auto &symbol_mangling = machine::compiler.info().symbol_mangling;
-	if (symbol_mangling == nullptr)
-		symbol_mangling = this;
-
 	std::string mangled_value;
 	if (parent_ == nullptr)
 		mangled_value =(std::to_string(name_.size()) + name_);
-	else
+	else//Add parent's mangling
 		mangled_value = (parent_->mangle() + std::to_string(name_.size()) + name_);
-
-	if (symbol_mangling == nullptr || symbol_mangling == this){
-		symbol_mangling = nullptr;
-		return ("N" + mangled_value + "E");
-	}
 
 	return mangled_value;
 }
@@ -155,6 +146,29 @@ elang::vm::symbol_entry::size_type elang::vm::function_symbol_entry::get_stack_o
 	return value;
 }
 
+int elang::vm::function_symbol_entry::score(const type_info_ptr_list_type &parameter_types) const{
+	auto arg = parameter_types.begin();
+	auto &parameters = dynamic_cast<function_type_info *>(type_.get())->parameters();
+	auto iter = parameters.begin();
+
+	int min_score = ELANG_TYPE_INFO_MIN_SCORE, score;
+	for (; arg != parameter_types.end() && iter != parameters.end(); ++arg){
+		if ((score = (*iter)->score(**arg)) == ELANG_TYPE_INFO_MIN_SCORE)
+			return ELANG_TYPE_INFO_MIN_SCORE;//Mismatch
+
+		if (score < min_score)//Update min
+			min_score = score;
+
+		if (!(*iter)->is_variadic())
+			++iter;
+	}
+
+	if (arg != parameter_types.end())//All arguments not matched
+		return ELANG_TYPE_INFO_MIN_SCORE;
+
+	return ((iter == parameters.end() || (*iter)->is_optional()) ? min_score : ELANG_TYPE_INFO_MIN_SCORE);
+}
+
 elang::vm::symbol_entry::id_type elang::vm::function_list_symbol_entry::id() const{
 	return id_type::function;
 }
@@ -166,76 +180,42 @@ std::string elang::vm::function_list_symbol_entry::mangle() const{
 void elang::vm::function_list_symbol_entry::add(ptr_type value){
 	auto function_list = dynamic_cast<function_list_symbol_entry *>(value.get());
 	if (function_list != nullptr){//Add multiple
-		for (auto entry : function_list->list_)
-			add_(*dynamic_cast<function_symbol_entry *>(entry.get()));
+		for (auto &entry : function_list->map_)
+			add_(*dynamic_cast<function_symbol_entry *>(entry.second.get()));
 	}
 	else//Add single
 		add_(*dynamic_cast<function_symbol_entry *>(value.get()));
 }
 
-elang::vm::symbol_entry *elang::vm::function_list_symbol_entry::find(const type_info_ptr_list_type &parameter_types) const{
-	bool mismatch;
-	for (auto entry : list_){
-		auto &parameters = dynamic_cast<function_type_info *>(entry->type().get())->parameters();
-		if (parameters.size() != parameter_types.size())
-			continue;
+elang::vm::symbol_entry *elang::vm::function_list_symbol_entry::resolve(const type_info_ptr_list_type &parameter_types, int *score) const{
+	symbol_entry *match = nullptr;
+	int match_count = 0, max_score = ELANG_TYPE_INFO_MIN_SCORE, this_score;
 
-		mismatch = false;
-		for (auto l = parameters.begin(), r = parameter_types.begin(); l == parameters.end(); ++l, ++r){
-			if (!(*l)->is_same(**r)){//Different types
-				mismatch = true;
-				break;
-			}
+	for (auto &entry : map_){
+		if ((this_score = dynamic_cast<function_symbol_entry *>(entry.second.get())->score(parameter_types)) > max_score){
+			match = entry.second.get();
+			match_count = 1;
+			max_score = this_score;
 		}
-
-		if (!mismatch)
-			return entry.get();
+		else if (this_score == max_score)
+			++match_count;
 	}
 
-	return nullptr;
-}
+	if (match_count > 1)
+		throw 0;//#TODO: Throw ambiguous error
 
-elang::vm::symbol_entry *elang::vm::function_list_symbol_entry::resolve(const type_info_ptr_list_type &parameter_types) const{
-	bool mismatch, same;
-	symbol_entry *match = nullptr, *compatible = nullptr;
+	if (score != nullptr)//Update ref
+		*score = max_score;
 
-	for (auto entry : list_){
-		auto &parameters = dynamic_cast<function_type_info *>(entry->type().get())->parameters();
-		if (parameters.size() != parameter_types.size())
-			continue;
-
-		mismatch = same = true;
-		for (auto l = parameters.begin(), r = parameter_types.begin(); l == parameters.end(); ++l, ++r){
-			if (match == nullptr && same && !(*l)->is_compatible(**r)){//Different types
-				same = false;
-				if (!(*l)->is_compatible(**r)){
-					mismatch = true;
-					break;
-				}
-			}
-			else if (!(*l)->is_compatible(**r)){
-				mismatch = true;
-				break;
-			}
-		}
-
-		if (!mismatch){//Match found
-			if (same){
-				match = entry.get();
-				break;
-			}
-			else if (compatible == nullptr)//Compatible
-				compatible = entry.get();
-		}
-	}
-
-	return ((match == nullptr) ? compatible : match);
+	return match;
 }
 
 void elang::vm::function_list_symbol_entry::add_(function_symbol_entry &value){
-	auto function_type = dynamic_cast<function_type_info *>(value.type().get());
-	auto entry = dynamic_cast<function_symbol_entry *>(find(function_type->parameters()));
-	if (entry != nullptr){//Entry already exists
+	auto key = value.mangle();
+	auto entry = find_(key);
+
+	if (entry != nullptr && entry->parent() == parent()){//Entry already exists
+		auto function_type = dynamic_cast<function_type_info *>(value.type().get());
 		if (!ELANG_IS(entry->attributes(), attribute_type::undefined_) || ELANG_IS(value.attributes(), attribute_type::undefined_) || entry->mangle() != value.mangle()){
 			if (dynamic_cast<function_type_info *>(entry->type().get())->return_type()->is_same(*function_type->return_type()))
 				throw compiler_error::redefinition;
@@ -243,7 +223,12 @@ void elang::vm::function_list_symbol_entry::add_(function_symbol_entry &value){
 		}
 	}
 
-	list_.push_back(value.reflect());
+	map_[key] = value.reflect();
+}
+
+elang::vm::function_symbol_entry *elang::vm::function_list_symbol_entry::find_(const std::string &value) const{
+	auto entry = map_.find(value);
+	return ((entry == map_.end()) ? nullptr : dynamic_cast<function_symbol_entry *>(entry->second.get()));
 }
 
 elang::vm::symbol_entry::id_type elang::vm::type_symbol_entry::id() const{
@@ -333,8 +318,6 @@ elang::vm::symbol_entry::id_type elang::vm::namespace_symbol_entry::id() const{
 	return id_type::namespace_;
 }
 
-std::string elang::vm::namespace_symbol_entry::mangle() const{
-	if (parent_ == nullptr)
-		return (std::to_string(name_.size()) + name_);
-	return (parent_->mangle() + std::to_string(name_.size()) + name_);
+std::string elang::vm::global_namespace_symbol_entry::mangle() const{
+	return name_;
 }

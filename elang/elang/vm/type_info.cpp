@@ -24,17 +24,18 @@ elang::vm::type_info *elang::vm::type_info::underlying_type() const{
 	return nullptr;
 }
 
+std::string elang::vm::type_info::mangle() const{
+	return (mangle_attributes_(attributes_) + mangle_());
+}
+
+std::string elang::vm::type_info::mangle_as_parameter() const{
+	if (ELANG_IS_ANY(attributes_, attribute_type::ref_ | attribute_type::vref))
+		return (mangle_attributes_(attributes_) + mangle_());
+	return (mangle_attributes_(ELANG_REMOVE_V(attributes_, attribute_type::const_)) + mangle_());
+}
+
 std::string elang::vm::type_info::mangle_attributes() const{
-	std::string mangled_attributes;
-	if (is_const())
-		mangled_attributes = "C";
-
-	if (is_ref())
-		mangled_attributes += "R";
-	else if (is_vref())
-		mangled_attributes += "V";
-
-	return mangled_attributes;
+	return mangle_attributes_(attributes());
 }
 
 bool elang::vm::type_info::is_same_object(const type_info &type) const{
@@ -93,12 +94,29 @@ bool elang::vm::type_info::is_variadic() const{
 	return false;
 }
 
+bool elang::vm::type_info::is_optional() const{
+	return false;
+}
+
 bool elang::vm::type_info::is_same_(const type_info &type) const{
 	return (is_ref() == type.is_ref() && is_vref() == type.is_vref());
 }
 
 bool elang::vm::type_info::is_compatible_(const type_info &type) const{
 	return (is_vref() == type.is_vref() && (!is_ref() || type.is_ref()));
+}
+
+std::string elang::vm::type_info::mangle_attributes_(attribute_type attributes) const{
+	std::string mangled_attributes;
+	if (ELANG_IS(attributes, attribute_type::const_))
+		mangled_attributes = machine::compiler.mangle(mangle_target::const_);
+
+	if (ELANG_IS(attributes, attribute_type::ref_))
+		mangled_attributes += machine::compiler.mangle(mangle_target::ref_);
+	else if (ELANG_IS(attributes, attribute_type::vref))
+		mangled_attributes += machine::compiler.mangle(mangle_target::vref);
+
+	return mangled_attributes;
 }
 
 elang::vm::primitive_type_info::primitive_type_info(primitive_id_type id, attribute_type attributes)
@@ -160,21 +178,32 @@ elang::vm::type_info::size_type elang::vm::primitive_type_info::size() const{
 	return 0u;
 }
 
-std::string elang::vm::primitive_type_info::mangle() const{
-	return (mangle_attributes() + mangle_());
+int elang::vm::primitive_type_info::score(const type_info &type) const{
+	if (type.is_vref())//Types must match
+		return ((is_vref() && (is_const() || !type.is_const()) && is_same_id_(type)) ? ELANG_TYPE_INFO_MAX_SCORE : ELANG_TYPE_INFO_MIN_SCORE);
+
+	if (is_ref()){//Type must be a ref
+		if (!is_const() && (!type.is_ref() || type.is_const()))
+			return ELANG_TYPE_INFO_MIN_SCORE;
+
+		if (is_same_id_(type))//Same type
+			return (type.is_ref() ? ELANG_TYPE_INFO_MAX_SCORE : (ELANG_TYPE_INFO_MAX_SCORE - 1));
+
+		return ((is_const() && has_conversion_(type)) ? (ELANG_TYPE_INFO_MAX_SCORE - 2) : ELANG_TYPE_INFO_MIN_SCORE);
+	}
+
+	if (is_same_id_(type))//Same type
+		return (type.is_ref() ? (ELANG_TYPE_INFO_MAX_SCORE - 1) : ELANG_TYPE_INFO_MAX_SCORE);
+
+	return (has_conversion_(type) ? (ELANG_TYPE_INFO_MAX_SCORE - 2) : ELANG_TYPE_INFO_MIN_SCORE);
 }
 
 bool elang::vm::primitive_type_info::is_same(const type_info &type) const{
-	if (!is_same_(type))
-		return false;
-
-	auto basic_type = dynamic_cast<const primitive_type_info *>(&type);
-	return (basic_type != nullptr && basic_type->id_ == id_);
+	return (is_same_(type) && is_same_id_(type));
 }
 
 bool elang::vm::primitive_type_info::is_same_unmodified(const type_info &type) const{
-	auto basic_type = dynamic_cast<const primitive_type_info *>(&type);
-	return (basic_type != nullptr && basic_type->id_ == id_);
+	return is_same_id_(type);
 }
 
 bool elang::vm::primitive_type_info::is_compatible(const type_info &type) const{
@@ -242,6 +271,18 @@ std::string elang::vm::primitive_type_info::mangle_() const{
 	throw compiler_error::unreachable;
 }
 
+bool elang::vm::primitive_type_info::is_same_id_(const type_info &type) const{
+	auto basic_type = dynamic_cast<const primitive_type_info *>(&type);
+	return (basic_type != nullptr && basic_type->id_ == id_);
+}
+
+bool elang::vm::primitive_type_info::has_conversion_(const type_info &type) const{
+	if (is_numeric() && type.is_numeric())
+		return true;
+
+	return false;
+}
+
 elang::vm::user_type_info::user_type_info(symbol_ptr_type value, attribute_type attributes)
 	: type_info(attributes), value_(value){}
 
@@ -253,16 +294,31 @@ elang::vm::type_info::size_type elang::vm::user_type_info::size() const{
 	return value_->size();
 }
 
-std::string elang::vm::user_type_info::mangle() const{
-	return (mangle_attributes() + value_->mangle());
+int elang::vm::user_type_info::score(const type_info &type) const{
+	if (type.is_vref())//Types must match
+		return ((is_vref() && (is_const() || !type.is_const()) && is_same_symbol_(type)) ? ELANG_TYPE_INFO_MAX_SCORE : ELANG_TYPE_INFO_MIN_SCORE);
+
+	if (is_ref()){//Type must be a ref
+		if (!is_const() && (!type.is_ref() || type.is_const()))
+			return ELANG_TYPE_INFO_MIN_SCORE;
+
+		if (is_same_symbol_(type))//Same type
+			return (type.is_ref() ? ELANG_TYPE_INFO_MAX_SCORE : (ELANG_TYPE_INFO_MAX_SCORE - 1));
+
+		if (!is_const())//Conversions not allowed
+			return (is_base_type_(type) ? (ELANG_TYPE_INFO_MAX_SCORE - 2) : ELANG_TYPE_INFO_MIN_SCORE);
+
+		return (has_conversion_(type) ? (ELANG_TYPE_INFO_MAX_SCORE - 2) : ELANG_TYPE_INFO_MIN_SCORE);
+	}
+
+	if (is_same_symbol_(type))//Same type
+		return (type.is_ref() ? (ELANG_TYPE_INFO_MAX_SCORE - 1) : ELANG_TYPE_INFO_MAX_SCORE);
+
+	return (has_conversion_(type) ? (ELANG_TYPE_INFO_MAX_SCORE - 2) : ELANG_TYPE_INFO_MIN_SCORE);
 }
 
 bool elang::vm::user_type_info::is_same(const type_info &type) const{
-	if (!is_same_(type))
-		return false;
-
-	auto basic_type = dynamic_cast<const user_type_info *>(&type);
-	return (basic_type != nullptr && basic_type->value_ == value_);
+	return (is_same_(type) && is_same_symbol_(type));
 }
 
 bool elang::vm::user_type_info::is_same_unmodified(const type_info &type) const{
@@ -274,6 +330,31 @@ bool elang::vm::user_type_info::is_compatible(const type_info &type) const{
 	if (is_ref())
 		return is_same(type);
 	return type_info::is_compatible(type);//#TODO: Implement
+}
+
+std::string elang::vm::user_type_info::mangle_() const{
+	return value_->mangle();
+}
+
+bool elang::vm::user_type_info::is_same_symbol_(const type_info &type) const{
+	auto basic_type = dynamic_cast<const user_type_info *>(&type);
+	return (basic_type != nullptr && basic_type->value_ == value_);
+}
+
+bool elang::vm::user_type_info::is_base_type_(const type_info &type) const{
+	auto basic_type = dynamic_cast<const user_type_info *>(&type);
+	if (basic_type == nullptr)
+		return false;
+
+	auto class_symbol = dynamic_cast<class_type_symbol_entry *>(basic_type->value_.get());
+	return (class_symbol != nullptr && class_symbol->is_base(*value_));
+}
+
+bool elang::vm::user_type_info::has_conversion_(const type_info &type) const{
+	if (is_base_type_(type))
+		return true;
+
+	return false;
 }
 
 elang::vm::pointer_type_info::pointer_type_info(ptr_type value, attribute_type attributes)
@@ -291,8 +372,37 @@ elang::vm::type_info *elang::vm::pointer_type_info::underlying_type() const{
 	return value_.get();
 }
 
-std::string elang::vm::pointer_type_info::mangle() const{
-	return ("P" + mangle_attributes() + value_->mangle());
+int elang::vm::pointer_type_info::score(const type_info &type) const{
+	if (!type.is_pointer()){
+		if (type.is_null_pointer())
+			return ((!is_vref() && (is_const() || !is_ref())) ? (ELANG_TYPE_INFO_MAX_SCORE - 2) : ELANG_TYPE_INFO_MIN_SCORE);
+
+		if (type.is_array())
+			return (is_same_underlying_types_(type) ? ELANG_TYPE_INFO_MAX_SCORE : ELANG_TYPE_INFO_MIN_SCORE);
+
+		return (has_conversion_(type) ? (ELANG_TYPE_INFO_MAX_SCORE - 2) : ELANG_TYPE_INFO_MIN_SCORE);
+	}
+
+	if (type.is_vref())//Types must match
+		return ((is_vref() && (is_const() || !type.is_const()) && is_same_underlying_types_(type)) ? ELANG_TYPE_INFO_MAX_SCORE : ELANG_TYPE_INFO_MIN_SCORE);
+
+	if (is_ref()){//Type must be a ref
+		if (!is_const() && (!type.is_ref() || type.is_const()))
+			return ELANG_TYPE_INFO_MIN_SCORE;
+
+		if (is_same_underlying_types_(type))//Same type
+			return (type.is_ref() ? ELANG_TYPE_INFO_MAX_SCORE : (ELANG_TYPE_INFO_MAX_SCORE - 1));
+
+		return ((is_const() && has_conversion_(type)) ? (ELANG_TYPE_INFO_MAX_SCORE - 2) : ELANG_TYPE_INFO_MIN_SCORE);
+	}
+
+	if (is_same_underlying_types_(type))//Same type
+		return (type.is_ref() ? (ELANG_TYPE_INFO_MAX_SCORE - 1) : ELANG_TYPE_INFO_MAX_SCORE);
+
+	if (type.underlying_type()->is_const() && !value_->is_const())
+		return ELANG_TYPE_INFO_MIN_SCORE;
+
+	return (value_->is_void() ? (ELANG_TYPE_INFO_MAX_SCORE - 2) : ELANG_TYPE_INFO_MIN_SCORE);
 }
 
 bool elang::vm::pointer_type_info::is_same(const type_info &type) const{
@@ -316,6 +426,22 @@ bool elang::vm::pointer_type_info::is_pointer() const{
 	return true;
 }
 
+std::string elang::vm::pointer_type_info::mangle_() const{
+	return (machine::compiler.mangle(mangle_target::pointer) + value_->mangle());
+}
+
+bool elang::vm::pointer_type_info::is_same_underlying_types_(const type_info &type) const{
+	auto underlying_type = type.underlying_type();
+	if (underlying_type == nullptr || (underlying_type->is_const() && !value_->is_const()))
+		return false;
+
+	return underlying_type->is_same_unmodified(*value_);
+}
+
+bool elang::vm::pointer_type_info::has_conversion_(const type_info &type) const{
+	return false;
+}
+
 elang::vm::array_type_info::array_type_info(ptr_type value, size_type count, attribute_type attributes)
 	: type_info(attributes), value_(value), count_(count){}
 
@@ -331,8 +457,8 @@ elang::vm::type_info *elang::vm::array_type_info::underlying_type() const{
 	return value_.get();
 }
 
-std::string elang::vm::array_type_info::mangle() const{
-	return ("A" + std::to_string(count_) + mangle_attributes() + value_->mangle());
+int elang::vm::array_type_info::score(const type_info &type) const{
+	return (is_same(type) ? ELANG_TYPE_INFO_MAX_SCORE : ELANG_TYPE_INFO_MIN_SCORE);
 }
 
 bool elang::vm::array_type_info::is_same(const type_info &type) const{
@@ -345,6 +471,11 @@ bool elang::vm::array_type_info::is_same_unmodified(const type_info &type) const
 
 bool elang::vm::array_type_info::is_array() const{
 	return true;
+}
+
+std::string elang::vm::array_type_info::mangle_() const{
+	auto array_symbol = machine::compiler.mangle(mangle_target::array_);
+	return (array_symbol + std::to_string(count_) + array_symbol + value_->mangle());
 }
 
 elang::vm::function_type_info::function_type_info(ptr_type return_type, const ptr_list_type &parameters, attribute_type attributes)
@@ -361,8 +492,8 @@ elang::vm::type_info::size_type elang::vm::function_type_info::size() const{
 	return 8u;
 }
 
-std::string elang::vm::function_type_info::mangle() const{
-	return ("F" + mangle_attributes() + mangle_parameters());
+int elang::vm::function_type_info::score(const type_info &type) const{
+	return (is_same(type) ? ELANG_TYPE_INFO_MAX_SCORE : ELANG_TYPE_INFO_MIN_SCORE);
 }
 
 bool elang::vm::function_type_info::is_same(const type_info &type) const{
@@ -408,9 +539,13 @@ std::string elang::vm::function_type_info::mangle_parameters() const{
 
 	std::string mangled_parameters;
 	for (auto parameter : parameters_)
-		mangled_parameters += parameter->mangle();
+		mangled_parameters += parameter->mangle_as_parameter();
 
 	return mangled_parameters;
+}
+
+std::string elang::vm::function_type_info::mangle_() const{
+	return (machine::compiler.mangle(mangle_target::function_) + mangle_parameters());
 }
 
 elang::vm::variadic_type_info::variadic_type_info(ptr_type value, attribute_type attributes)
@@ -428,8 +563,8 @@ elang::vm::type_info *elang::vm::variadic_type_info::underlying_type() const{
 	return value_.get();
 }
 
-std::string elang::vm::variadic_type_info::mangle() const{
-	return ("N" + mangle_attributes() + value_->mangle());
+int elang::vm::variadic_type_info::score(const type_info &type) const{
+	return value_->score(type);
 }
 
 bool elang::vm::variadic_type_info::is_same(const type_info &type) const{
@@ -449,4 +584,127 @@ bool elang::vm::variadic_type_info::is_compatible(const type_info &type) const{
 
 bool elang::vm::variadic_type_info::is_variadic() const{
 	return true;
+}
+
+bool elang::vm::variadic_type_info::is_optional() const{
+	return true;
+}
+
+std::string elang::vm::variadic_type_info::mangle_() const{
+	return (machine::compiler.mangle(mangle_target::variadic) + value_->mangle());
+}
+
+elang::vm::optional_type_info::optional_type_info(ptr_type value)
+	: type_info(attribute_type::nil), value_(value){}
+
+elang::vm::type_info::ptr_type elang::vm::optional_type_info::clone(attribute_type attributes) const{
+	return value_->clone(attributes);
+}
+
+elang::vm::machine_value_type_id elang::vm::optional_type_info::id() const{
+	return value_->id();
+}
+
+elang::vm::type_info::primitive_id_type elang::vm::optional_type_info::primitive_id() const{
+	return value_->primitive_id();
+}
+
+elang::vm::type_info::attribute_type elang::vm::optional_type_info::attributes() const{
+	return value_->attributes();
+}
+
+elang::vm::type_info::size_type elang::vm::optional_type_info::size() const{
+	return value_->size();
+}
+
+elang::vm::type_info *elang::vm::optional_type_info::underlying_type() const{
+	return value_->underlying_type();
+}
+
+std::string elang::vm::optional_type_info::mangle() const{
+	return value_->mangle();
+}
+
+std::string elang::vm::optional_type_info::mangle_as_parameter() const{
+	return value_->mangle_as_parameter();
+}
+
+std::string elang::vm::optional_type_info::mangle_attributes() const{
+	return value_->mangle_attributes();
+}
+
+int elang::vm::optional_type_info::score(const type_info &type) const{
+	return value_->score(type);
+}
+
+bool elang::vm::optional_type_info::is_same(const type_info &type) const{
+	return value_->is_same(type);
+}
+
+bool elang::vm::optional_type_info::is_same_unmodified(const type_info &type) const{
+	return value_->is_same_unmodified(type);
+}
+
+bool elang::vm::optional_type_info::is_same_object(const type_info &type) const{
+	return value_->is_same_object(type);
+}
+
+bool elang::vm::optional_type_info::is_compatible(const type_info &type) const{
+	return value_->is_compatible(type);
+}
+
+bool elang::vm::optional_type_info::is_null_pointer() const{
+	return value_->is_null_pointer();
+}
+
+bool elang::vm::optional_type_info::is_pointer() const{
+	return value_->is_pointer();
+}
+
+bool elang::vm::optional_type_info::is_array() const{
+	return value_->is_array();
+}
+
+bool elang::vm::optional_type_info::is_function() const{
+	return value_->is_function();
+}
+
+bool elang::vm::optional_type_info::is_void() const{
+	return value_->is_void();
+}
+
+bool elang::vm::optional_type_info::is_bool() const{
+	return value_->is_bool();
+}
+
+bool elang::vm::optional_type_info::is_numeric() const{
+	return value_->is_numeric();
+}
+
+bool elang::vm::optional_type_info::is_integral() const{
+	return value_->is_integral();
+}
+
+bool elang::vm::optional_type_info::is_const() const{
+	return value_->is_const();
+}
+
+bool elang::vm::optional_type_info::is_ref() const{
+	return value_->is_ref();
+}
+
+bool elang::vm::optional_type_info::is_vref() const{
+	return value_->is_vref();
+}
+
+bool elang::vm::optional_type_info::is_variadic() const{
+	return value_->is_variadic();
+}
+
+bool elang::vm::optional_type_info::is_optional() const{
+	return true;
+}
+
+std::string elang::vm::optional_type_info::mangle_() const{
+	return "";
 }

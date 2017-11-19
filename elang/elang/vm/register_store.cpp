@@ -38,6 +38,17 @@ elang::vm::machine_register *elang::vm::syscall_register_store::get(unsigned int
 	return ((list.size() <= index) ? nullptr : machine::register_manager.find(list[index]));
 }
 
+void elang::vm::register_store::boot(){
+	for (auto entry : integral_used_list_)
+		available_list_.insert(available_list_.begin(), entry);
+
+	for (auto entry : float_used_list_)
+		available_float_list_.insert(available_float_list_.begin(), entry);
+
+	integral_used_list_.clear();
+	float_used_list_.clear();
+}
+
 elang::vm::machine_register *elang::vm::register_store::get(value_type_id_type value_type){
 	init_();
 	if (value_type == value_type_id_type::unknown)
@@ -49,7 +60,7 @@ elang::vm::machine_register *elang::vm::register_store::get(value_type_id_type v
 
 		auto entry = available_float_list_[0];
 		available_float_list_.erase(available_float_list_.begin());
-		used_list_.push_back(entry);
+		float_used_list_.push_back(entry);
 
 		return entry;
 	}
@@ -103,10 +114,19 @@ elang::vm::machine_register *elang::vm::register_store::convert(machine_register
 }
 
 void elang::vm::register_store::put(machine_register &value){
-	auto iter = used_integral_iter_(value);
-	if (iter != integral_used_list_.end()){//Add to available list
-		available_list_.push_back(*iter);
-		integral_used_list_.erase(iter);
+	if (value.type_id() == value_type_id_type::float_){
+		auto float_iter = std::find(float_used_list_.begin(), float_used_list_.end(), &value);
+		if (float_iter != float_used_list_.end()){
+			available_float_list_.insert(available_float_list_.begin(), *float_iter);
+			float_used_list_.erase(float_iter);
+		}
+	}
+	else{//Integral
+		auto iter = used_integral_iter_(value);
+		if (iter == integral_used_list_.end()){
+			available_list_.insert(available_list_.begin(), *iter);
+			integral_used_list_.erase(iter);
+		}
 	}
 }
 
@@ -117,7 +137,7 @@ void elang::vm::register_store::init_(){
 	cache_.reserve(4);
 	available_list_.reserve(4);
 	available_float_list_.reserve(4);
-	used_list_.reserve(4);
+	float_used_list_.reserve(4);
 
 	cache_.push_back(info_type{
 		machine::register_manager.find("rax"),

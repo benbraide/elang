@@ -70,7 +70,7 @@ namespace elang::vm{
 	class named_symbol_entry : public symbol_entry{
 	public:
 		template <typename... args_types>
-		named_symbol_entry(const std::string &name, args_types &&... args)
+		explicit named_symbol_entry(const std::string &name, args_types &&... args)
 			: symbol_entry(std::forward<args_types>(args)...), name_(name){}
 
 		virtual std::string mangle() const override;
@@ -89,7 +89,7 @@ namespace elang::vm{
 		typedef std::unordered_map<std::string, ptr_type> map_type;
 
 		template <typename... args_types>
-		storage_symbol_entry(args_types &&... args)
+		explicit storage_symbol_entry(args_types &&... args)
 			: named_symbol_entry(std::forward<args_types>(args)...){}
 
 		virtual void add(const std::string &key, ptr_type value);
@@ -111,7 +111,7 @@ namespace elang::vm{
 		typedef elang::easm::instruction::operand_base::ptr_type instruction_operand_ptr_type;
 
 		template <typename... args_types>
-		variable_symbol_entry(type_info_ptr_type type, args_types &&... args)
+		explicit variable_symbol_entry(type_info_ptr_type type, args_types &&... args)
 			: named_symbol_entry(std::forward<args_types>(args)...), type_(type){
 			if (!ELANG_IS(attributes_, attribute_type::static_))
 				stack_offset_ = dynamic_cast<storage_symbol_entry *>(parent_)->get_stack_offset(type_->size());
@@ -136,8 +136,10 @@ namespace elang::vm{
 
 	class function_symbol_entry : public storage_symbol_entry{
 	public:
+		typedef std::vector<type_info_ptr_type> type_info_ptr_list_type;
+
 		template <typename... args_types>
-		function_symbol_entry(type_info_ptr_type type, args_types &&... args)
+		explicit function_symbol_entry(type_info_ptr_type type, args_types &&... args)
 			: storage_symbol_entry(std::forward<args_types>(args)...), type_(type){}
 
 		virtual id_type id() const override;
@@ -150,6 +152,8 @@ namespace elang::vm{
 
 		virtual size_type get_stack_offset(size_type new_size) override;
 
+		virtual int score(const type_info_ptr_list_type &parameter_types) const;
+
 	protected:
 		type_info_ptr_type type_;
 		size_type size_;
@@ -157,11 +161,11 @@ namespace elang::vm{
 
 	class function_list_symbol_entry : public named_symbol_entry{
 	public:
-		typedef std::vector<ptr_type> ptr_list_type;
 		typedef std::vector<type_info_ptr_type> type_info_ptr_list_type;
+		typedef std::unordered_map<std::string, ptr_type> ptr_map_type;
 
 		template <typename... args_types>
-		function_list_symbol_entry(args_types &&... args)
+		explicit function_list_symbol_entry(args_types &&... args)
 			: named_symbol_entry(std::forward<args_types>(args)...){}
 
 		virtual id_type id() const override;
@@ -170,20 +174,20 @@ namespace elang::vm{
 
 		virtual void add(ptr_type value);
 
-		virtual symbol_entry *find(const type_info_ptr_list_type &parameter_types) const;
-
-		virtual symbol_entry *resolve(const type_info_ptr_list_type &parameter_types) const;
+		virtual symbol_entry *resolve(const type_info_ptr_list_type &parameter_types, int *score = nullptr) const;
 
 	protected:
 		void add_(function_symbol_entry &value);
 
-		ptr_list_type list_;
+		function_symbol_entry *find_(const std::string &value) const;
+
+		ptr_map_type map_;
 	};
 
 	class type_symbol_entry : public storage_symbol_entry{
 	public:
 		template <typename... args_types>
-		type_symbol_entry(args_types &&... args)
+		explicit type_symbol_entry(args_types &&... args)
 			: storage_symbol_entry(std::forward<args_types>(args)...), size_(0){}
 
 		virtual id_type id() const override;
@@ -197,7 +201,7 @@ namespace elang::vm{
 	class enum_type_symbol_entry : public type_symbol_entry{
 	public:
 		template <typename... args_types>
-		enum_type_symbol_entry(size_type size, args_types &&... args)
+		explicit enum_type_symbol_entry(size_type size, args_types &&... args)
 			: type_symbol_entry(std::forward<args_types>(args)...){
 			size_ = size;
 		}
@@ -206,7 +210,7 @@ namespace elang::vm{
 	class union_type_symbol_entry : public type_symbol_entry{
 	public:
 		template <typename... args_types>
-		union_type_symbol_entry(args_types &&... args)
+		explicit union_type_symbol_entry(args_types &&... args)
 			: type_symbol_entry(std::forward<args_types>(args)...){}
 
 		virtual size_type get_stack_offset(size_type new_size) override;
@@ -215,7 +219,7 @@ namespace elang::vm{
 	class struct_type_symbol_entry : public type_symbol_entry{
 	public:
 		template <typename... args_types>
-		struct_type_symbol_entry(args_types &&... args)
+		explicit struct_type_symbol_entry(args_types &&... args)
 			: type_symbol_entry(std::forward<args_types>(args)...){}
 
 		virtual size_type get_stack_offset(size_type new_size) override;
@@ -232,7 +236,7 @@ namespace elang::vm{
 		typedef std::unordered_map<std::string, base_info_type> base_map_type;
 
 		template <typename... args_types>
-		class_type_symbol_entry(args_types &&... args)
+		explicit class_type_symbol_entry(args_types &&... args)
 			: type_symbol_entry(std::forward<args_types>(args)...){}
 
 		virtual size_type get_stack_offset(size_type new_size) override;
@@ -257,10 +261,17 @@ namespace elang::vm{
 	class namespace_symbol_entry : public storage_symbol_entry{
 	public:
 		template <typename... args_types>
-		namespace_symbol_entry(args_types &&... args)
+		explicit namespace_symbol_entry(args_types &&... args)
 			: storage_symbol_entry(std::forward<args_types>(args)...){}
 
 		virtual id_type id() const override;
+	};
+
+	class global_namespace_symbol_entry : public namespace_symbol_entry{
+	public:
+		template <typename... args_types>
+		explicit global_namespace_symbol_entry(args_types &&... args)
+			: namespace_symbol_entry("_G", std::forward<args_types>(args)...){}
 
 		virtual std::string mangle() const override;
 	};

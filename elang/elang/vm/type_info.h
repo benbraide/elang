@@ -14,6 +14,9 @@
 
 #include "machine_value_type_id.h"
 
+#define ELANG_TYPE_INFO_MIN_SCORE 0
+#define ELANG_TYPE_INFO_MAX_SCORE 20
+
 namespace elang::vm{
 	class symbol_entry;
 
@@ -53,9 +56,13 @@ namespace elang::vm{
 
 		virtual type_info *underlying_type() const;
 
-		virtual std::string mangle() const = 0;
+		virtual std::string mangle() const;
+
+		virtual std::string mangle_as_parameter() const;
 
 		virtual std::string mangle_attributes() const;
+
+		virtual int score(const type_info &type) const = 0;
 
 		virtual bool is_same(const type_info &type) const = 0;
 
@@ -89,10 +96,16 @@ namespace elang::vm{
 
 		virtual bool is_variadic() const;
 
+		virtual bool is_optional() const;
+
 	protected:
 		virtual bool is_same_(const type_info &type) const;
 
 		virtual bool is_compatible_(const type_info &type) const;
+
+		virtual std::string mangle_() const = 0;
+
+		virtual std::string mangle_attributes_(attribute_type attributes) const;
 
 		attribute_type attributes_;
 	};
@@ -109,7 +122,7 @@ namespace elang::vm{
 
 		virtual size_type size() const override;
 
-		virtual std::string mangle() const override;
+		virtual int score(const type_info &type) const override;
 
 		virtual bool is_same(const type_info &type) const override;
 
@@ -127,8 +140,12 @@ namespace elang::vm{
 
 		virtual bool is_integral() const override;
 
-	private:
-		virtual std::string mangle_() const;
+	protected:
+		virtual std::string mangle_() const override;
+
+		virtual bool is_same_id_(const type_info &type) const;
+
+		virtual bool has_conversion_(const type_info &type) const;
 
 		primitive_id_type id_;
 	};
@@ -141,7 +158,7 @@ namespace elang::vm{
 
 		virtual size_type size() const override;
 
-		virtual std::string mangle() const override;
+		virtual int score(const type_info &type) const override;
 
 		virtual bool is_same(const type_info &type) const override;
 
@@ -149,7 +166,15 @@ namespace elang::vm{
 
 		virtual bool is_compatible(const type_info &type) const override;
 
-	private:
+	protected:
+		virtual std::string mangle_() const override;
+
+		virtual bool is_same_symbol_(const type_info &type) const;
+
+		virtual bool is_base_type_(const type_info &type) const;
+
+		virtual bool has_conversion_(const type_info &type) const;
+
 		symbol_ptr_type value_;
 	};
 
@@ -163,7 +188,7 @@ namespace elang::vm{
 
 		virtual type_info *underlying_type() const override;
 
-		virtual std::string mangle() const override;
+		virtual int score(const type_info &type) const override;
 
 		virtual bool is_same(const type_info &type) const override;
 
@@ -173,7 +198,13 @@ namespace elang::vm{
 
 		virtual bool is_pointer() const override;
 
-	private:
+	protected:
+		virtual std::string mangle_() const override;
+
+		virtual bool is_same_underlying_types_(const type_info &type) const;
+
+		virtual bool has_conversion_(const type_info &type) const;
+
 		ptr_type value_;
 	};
 
@@ -187,7 +218,7 @@ namespace elang::vm{
 
 		virtual type_info *underlying_type() const override;
 
-		virtual std::string mangle() const override;
+		virtual int score(const type_info &type) const override;
 
 		virtual bool is_same(const type_info &type) const override;
 
@@ -195,7 +226,9 @@ namespace elang::vm{
 
 		virtual bool is_array() const override;
 
-	private:
+	protected:
+		virtual std::string mangle_() const override;
+
 		ptr_type value_;
 		size_type count_;
 	};
@@ -212,7 +245,7 @@ namespace elang::vm{
 
 		virtual size_type size() const override;
 
-		virtual std::string mangle() const override;
+		virtual int score(const type_info &type) const override;
 
 		virtual bool is_same(const type_info &type) const override;
 
@@ -230,7 +263,9 @@ namespace elang::vm{
 
 		std::string mangle_parameters() const;
 
-	private:
+	protected:
+		virtual std::string mangle_() const override;
+
 		ptr_type return_type_;
 		ptr_list_type parameters_;
 	};
@@ -245,7 +280,7 @@ namespace elang::vm{
 
 		virtual type_info *underlying_type() const override;
 
-		virtual std::string mangle() const override;
+		virtual int score(const type_info &type) const override;
 
 		virtual bool is_same(const type_info &type) const override;
 
@@ -255,7 +290,75 @@ namespace elang::vm{
 
 		virtual bool is_variadic() const override;
 
-	private:
+		virtual bool is_optional() const override;
+
+	protected:
+		virtual std::string mangle_() const override;
+
+		ptr_type value_;
+	};
+
+	class optional_type_info : public type_info{
+	public:
+		explicit optional_type_info(ptr_type value);
+
+		virtual ptr_type clone(attribute_type attributes) const override;
+
+		virtual machine_value_type_id id() const override;
+
+		virtual primitive_id_type primitive_id() const override;
+
+		virtual attribute_type attributes() const override;
+
+		virtual size_type size() const override;
+
+		virtual type_info *underlying_type() const override;
+
+		virtual std::string mangle() const override;
+
+		virtual std::string mangle_as_parameter() const override;
+
+		virtual std::string mangle_attributes() const override;
+
+		virtual int score(const type_info &type) const override;
+
+		virtual bool is_same(const type_info &type) const override;
+
+		virtual bool is_same_unmodified(const type_info &type) const override;
+
+		virtual bool is_same_object(const type_info &type) const override;
+
+		virtual bool is_compatible(const type_info &type) const override;
+
+		virtual bool is_null_pointer() const override;
+
+		virtual bool is_pointer() const override;
+
+		virtual bool is_array() const override;
+
+		virtual bool is_function() const override;
+
+		virtual bool is_void() const override;
+
+		virtual bool is_bool() const override;
+
+		virtual bool is_numeric() const override;
+
+		virtual bool is_integral() const override;
+
+		virtual bool is_const() const override;
+
+		virtual bool is_ref() const override;
+
+		virtual bool is_vref() const override;
+
+		virtual bool is_variadic() const override;
+
+		virtual bool is_optional() const override;
+
+	protected:
+		virtual std::string mangle_() const override;
+
 		ptr_type value_;
 	};
 

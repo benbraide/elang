@@ -5,23 +5,49 @@
 #include "compiler.h"
 
 elang::vm::compiler::compiler()
-	: register_list_(4), expression_type_(machine_value_type_id::unknown), label_count_(0){
+	: states_(state_type::nil), label_count_(0), short_circuit_count_(0){
 	section_map_[section_id_type::meta] = std::make_shared<elang::easm::instruction_section>(section_id_type::meta);
 	section_map_[section_id_type::rodata] = std::make_shared<elang::easm::instruction_section>(section_id_type::rodata);
 	section_map_[section_id_type::data] = std::make_shared<elang::easm::instruction_section>(section_id_type::data);
 	section_map_[section_id_type::type] = std::make_shared<elang::easm::instruction_section>(section_id_type::type);
 	section_map_[section_id_type::text] = std::make_shared<elang::easm::instruction_section>(section_id_type::text);
+	section_map_[section_id_type::disabled] = std::make_shared<elang::easm::disabled_instruction_section>();
 
 	info_ = info_type{ std::make_shared<namespace_symbol_entry>("_G", nullptr, symbol_entry_attribute::nil) };
-	info_.current_context.value = info_.global_context.get();
-	info_.current_context.bubble_search = true;
-
 	for (auto id = primitive_type_id_type::auto_; id <= primitive_type_id_type::float_; id = static_cast<primitive_type_id_type>(static_cast<int>(id) + 1))
 		primitive_type_map_[id] = std::make_shared<primitive_type_info>(id, type_info::attribute_type::nil);
 }
 
+void elang::vm::compiler::boot(){
+	store_.boot();
+
+	states_ = state_type::nil;
+	label_count_ = short_circuit_count_ = 0;
+
+	info_.current_context.value = info_.global_context.get();
+	info_.current_context.bubble_search = true;
+
+	for (auto &section : section_map_)
+		section.second;
+}
+
+void elang::vm::compiler::begin_compilation(){
+	ELANG_SET(states_, state_type::compiling);
+}
+
+void elang::vm::compiler::end_compilation(){
+	ELANG_REMOVE(states_, state_type::compiling);
+}
+
 bool elang::vm::compiler::is_compiling() const{
-	return false;
+	return ELANG_IS(states_, state_type::compiling);
+}
+
+void elang::vm::compiler::set_short_circuit(bool enabled){
+	if (enabled)
+		++short_circuit_count_;
+	else if (short_circuit_count_ > 0u)
+		--short_circuit_count_;
 }
 
 elang::vm::register_store &elang::vm::compiler::store(){
@@ -29,53 +55,14 @@ elang::vm::register_store &elang::vm::compiler::store(){
 }
 
 elang::vm::compiler::section_type &elang::vm::compiler::section(section_id_type id){
+	if (short_circuit_count_ > 0u)//Short-circuited
+		return *section_map_[section_id_type::disabled];
+
 	auto entry = section_map_.find(id);
 	if (entry != section_map_.end())
 		return *entry->second;
 
 	throw error_type::no_section;
-}
-
-void elang::vm::compiler::push_register(machine_register &reg){
-	for (auto entry = register_list_.begin(); entry != register_list_.end(); ++entry){
-		if (*entry == nullptr){
-			*entry = &reg;
-			return;
-		}
-	}
-
-	throw machine_error::no_register;
-}
-
-elang::vm::machine_register *elang::vm::compiler::pop_register(){
-	if (register_list_[0] == nullptr)
-		return nullptr;
-
-	auto reg = register_list_[0];
-	auto entry = register_list_.begin();
-
-	for (auto next = std::next(entry); next != register_list_.end(); ++entry, ++next){
-		if (*entry != nullptr)
-			*entry = *next;
-		else//No used spot
-			break;
-	}
-
-	return reg;
-}
-
-void elang::vm::compiler::reset_expression_type(){
-	expression_type_ = machine_value_type_id::unknown;
-}
-
-void elang::vm::compiler::set_expression_type(machine_value_type_id left, machine_value_type_id right){
-	auto type = ((left < right) ? right : left);
-	if (expression_type_ == machine_value_type_id::unknown || expression_type_ < type)
-		expression_type_ = type;
-}
-
-elang::vm::machine_value_type_id elang::vm::compiler::get_expression_type() const{
-	return expression_type_;
 }
 
 std::string elang::vm::compiler::generate_label(label_type type){
@@ -89,46 +76,33 @@ std::string elang::vm::compiler::generate_label(label_type type){
 	throw compiler_error::unreachable;
 }
 
-elang::vm::compiler::instruction_operand_ptr_type elang::vm::compiler::get_constant_operand(elang::common::constant_value type){
-	auto entry = constant_value_map_.find(type);
-	if (entry != constant_value_map_.end())
-		return entry->second;
-
-	std::string label;
-	machine_value_type_id size;
-
-	switch (type){
-	case elang::common::constant_value::false_:
-		label = "__false__";
-		size = machine_value_type_id::byte;
-		break;
-	case elang::common::constant_value::true_:
-		label = "__true__";
-		size = machine_value_type_id::byte;
-		break;
-	case elang::common::constant_value::indeterminate:
-		label = "__ind__";
-		size = machine_value_type_id::byte;
-		break;
-	case elang::common::constant_value::nullptr_:
-		label = "__null__";
-		size = machine_value_type_id::qword;
-		break;
-	case elang::common::constant_value::nan_:
-		label = "__nan__";
-		size = machine_value_type_id::qword;
-		break;
-	case elang::common::constant_value::infinite_:
-		label = "__inf__";
-		size = machine_value_type_id::qword;
-		break;
+std::string elang::vm::compiler::mangle(mangle_target target) const{
+	switch (target){
+	case mangle_target::pointer:
+		return "P";
+	case mangle_target::array_:
+		return "A";
+	case mangle_target::function_:
+		return "F";
+	case mangle_target::variadic:
+		return "V";
+	case mangle_target::const_:
+		return "K";
+	case mangle_target::ref_:
+		return "R";
+	case mangle_target::vref:
+		return "U";
+	case mangle_target::operator_:
+		return "O";
+	case mangle_target::constructor:
+		return "C";
+	case mangle_target::destructor:
+		return "D";
 	default:
-		throw compiler_error::unreachable;
 		break;
 	}
 
-	auto label_op = std::make_shared<elang::easm::instruction::label_operand>(label, std::vector<std::string>());
-	return (constant_value_map_[type] = std::make_shared<elang::easm::instruction::memory_operand>(size, label_op));
+	throw compiler_error::unreachable;
 }
 
 void elang::vm::compiler::reset_warnings(){

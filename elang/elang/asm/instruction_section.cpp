@@ -7,6 +7,10 @@
 elang::easm::instruction_section_base::instruction_section_base(id_type id)
 	: id_(id), offset_(0), seg_offset_(0){}
 
+void elang::easm::instruction_section_base::boot(){
+	offset_ = seg_offset_ = 0;
+}
+
 elang::easm::instruction_section_base::id_type elang::easm::instruction_section_base::id() const{
 	return id_;
 }
@@ -95,6 +99,15 @@ elang::easm::instruction_section_base::instruction_type *elang::easm::instructio
 elang::easm::instruction_section::instruction_section(id_type id)
 	: instruction_section_base(id){}
 
+void elang::easm::instruction_section::boot(){
+	instruction_section_base::boot();
+
+	order_list_.clear();
+	instruction_list_.clear();
+	label_list_.clear();
+	range_map_.clear();
+}
+
 void elang::easm::instruction_section::write_memory() const{
 	auto seg_offset = seg_offset_;
 	for (auto &entry : order_list_){//Write instructions to memory
@@ -174,3 +187,14 @@ elang::easm::instruction_section_base::instruction_type *elang::easm::instructio
 
 	return nullptr;
 }
+
+elang::easm::disabled_instruction_section::disabled_instruction_section()
+	: instruction_section_base(id_type::data){}
+
+void elang::easm::disabled_instruction_section::write_memory() const{}
+
+elang::easm::instruction_label *elang::easm::disabled_instruction_section::add(instruction_label *parent, const std::string &label){
+	return nullptr;
+}
+
+void elang::easm::disabled_instruction_section::add(instruction_ptr_type instruction){}
