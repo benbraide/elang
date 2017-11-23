@@ -646,47 +646,44 @@ struct expression_traverser{
 		if (type_value->is_const())
 			throw elang::vm::compiler_error::invalid_cast;
 
-		if (this_->is_constant && this_->is_static && this_->type->is_numeric()){
-			if (this_->type->primitive_id() != type_value->primitive_id()){//Do conversion if types are different
+		if (type_value->is_numeric()){
+			if (!this_->type->is_numeric())
+				throw elang::vm::compiler_error::invalid_cast;
+
+			if (this_->is_constant && this_->is_static){//Static
 				if (type_value->is_integral()){
 					this_->value = integer_value_info{ boost::apply_visitor(get_int_value(), this_->value), type_value->primitive_id() };
 					this_->type = elang::vm::machine::compiler.find_primitive_type(type_value->primitive_id());
 				}
-				else if (type_value->is_numeric()){
+				else{//Float
 					this_->value = boost::apply_visitor(get_float_value(), this_->value);
 					this_->type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::float_);
 				}
-				else//Error
-					throw elang::vm::compiler_error::invalid_cast;
 			}
-		}
-		else if (this_->type->is_numeric() && type_value->is_numeric()){
-			if (this_->type->primitive_id() != type_value->primitive_id()){
-				auto left_reg = elang::vm::machine::compiler.store().get(type_value->id());
+			else{//Runtime
+				auto left_reg = load_register::get_register(type_value->id());
 				auto right_reg = load_register::load(ELANG_AST_COMMON_TRAVERSER_OUT_DREF);
 
-				auto lreg_op = std::make_shared<elang::easm::instruction::register_operand>(*left_reg);
-				auto rreg_op = std::make_shared<elang::easm::instruction::register_operand>(*right_reg);
-
-				auto instruction = std::make_shared<elang::easm::instruction::extended_mov>(std::vector<instruction_operand_ptr_type>{ lreg_op, rreg_op });
-				elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
-				elang::vm::machine::compiler.store().put(*right_reg);
+				instruction_creator::create<elang::easm::instruction::extended_mov>(*left_reg, *right_reg);
+				elang::vm::machine::compiler.store().put(*right_reg);//Return register
 
 				this_->value = left_reg;
 				this_->type = elang::vm::machine::compiler.find_primitive_type(type_value->primitive_id());
 			}
-			else//No conversion necessary
-				this_->value = load_register::load(ELANG_AST_COMMON_TRAVERSER_OUT_DREF);
 		}
-		else if (type_value->is_pointer() && (this_->type->is_pointer() || this_->type->is_null_pointer())){
-			if (this_->type->is_null_pointer() || this_->type->underlying_type()->is_void() || type_value->underlying_type()->is_void()){
-				this_->value = load_register::load(ELANG_AST_COMMON_TRAVERSER_OUT_DREF);
-				this_->type = type_value;
-			}
-			else//Error
+		else if (type_value->is_pointer()){
+			if (!this_->type->is_null_pointer() && !this_->type->underlying_type()->is_void() && !type_value->underlying_type()->is_void())
 				throw elang::vm::compiler_error::invalid_cast;
+
+			if (this_->type->underlying_type()->is_const() && !type_value->underlying_type()->is_const())
+				throw elang::vm::compiler_error::invalid_cast;
+
+			if (!this_->is_constant || !this_->is_static)//Runtime
+				this_->value = load_register::load(ELANG_AST_COMMON_TRAVERSER_OUT_DREF);
+			
+			this_->type = type_value;
 		}
-		else//Error
+		else//Invalid
 			throw elang::vm::compiler_error::invalid_cast;
 	}
 

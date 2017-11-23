@@ -405,18 +405,7 @@ struct load_register{
 	}
 
 	elang::vm::machine_register *operator ()(elang::vm::symbol_entry *value) const{
-		if (ELANG_IS(value->attributes(), elang::vm::symbol_entry_attribute::static_)){//Static
-			auto reg = get_register(elang::vm::machine_value_type_id::qword);
-			auto reg_op = std::make_shared<elang::easm::instruction::register_operand>(*reg);
-
-			auto label_op = std::make_shared<elang::easm::instruction::label_operand>(value->mangle());
-			auto instruction = std::make_shared<elang::easm::instruction::mov>(std::vector<instruction_operand_ptr_type>{ reg_op, label_op });
-
-			elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
-			return reg;
-		}
-
-		throw elang::vm::compiler_error::unreachable;
+		throw elang::vm::compiler_error::variable_expected;
 	}
 
 	elang::vm::machine_register *operator ()(elang::vm::machine_register *value) const{

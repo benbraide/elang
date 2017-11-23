@@ -27,6 +27,7 @@ namespace elang::vm{
 		variable_expected,
 		invalid_operation,
 		invalid_cast,
+		no_static_const_value,
 		unreachable,
 	};
 
@@ -88,6 +89,9 @@ namespace elang::vm{
 			current_context_info_type current_context;
 		};
 
+		typedef std::variant<__int64, long double> static_const_value_type;
+		typedef std::unordered_map<symbol_entry *, static_const_value_type> static_const_value_map_type;
+
 		compiler();
 
 		void boot();
@@ -116,6 +120,19 @@ namespace elang::vm{
 
 		type_info_ptr_type find_primitive_type(primitive_type_id_type id) const;
 
+		template <typename value_type>
+		void add_static_const_value(symbol_entry &key, value_type value){
+			static_const_value_map_[&key] = value;
+		}
+
+		template <typename target_type>
+		target_type get_static_const_value(symbol_entry &key) const{
+			auto entry = static_const_value_map_.find(&key);
+			if (entry == static_const_value_map_.end())
+				throw compiler_error::no_static_const_value;
+			return std::get<target_type>(entry->second);
+		}
+
 		info_type &info();
 
 	private:
@@ -123,6 +140,7 @@ namespace elang::vm{
 		register_store store_;
 		section_map_type section_map_;
 		primitive_type_map_type primitive_type_map_;
+		static_const_value_map_type static_const_value_map_;
 		unsigned int label_count_;
 		unsigned int short_circuit_count_;
 		info_type info_;

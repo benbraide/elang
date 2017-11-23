@@ -30,6 +30,7 @@ namespace elang::vm{
 		private_			= (1 << 0x0002),
 		protected_			= (1 << 0x0003),
 		undefined_			= (1 << 0x0004),
+		static_const		= (1 << 0x0005),
 	};
 
 	class symbol_entry : public std::enable_shared_from_this<symbol_entry>{

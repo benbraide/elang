@@ -24,11 +24,15 @@ void elang::vm::compiler::boot(){
 	states_ = state_type::nil;
 	label_count_ = short_circuit_count_ = 0;
 
+	info_.current_context = current_context_info_type{};
 	info_.current_context.value = info_.global_context.get();
 	info_.current_context.bubble_search = true;
 
 	for (auto &section : section_map_)
-		section.second;
+		section.second->boot();
+
+	section_map_.clear();
+	static_const_value_map_.clear();
 }
 
 void elang::vm::compiler::begin_compilation(){

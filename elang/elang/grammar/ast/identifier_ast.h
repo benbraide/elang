@@ -58,8 +58,8 @@ struct identifier_resolver{
 		try{
 			info.current_context.bubble_search = false;
 			for (auto &rast : ast.second){
-				if (value == nullptr)
-					throw elang::vm::compiler_error::undefined;
+				if (value == nullptr)//End search
+					return nullptr;
 
 				if ((context = dynamic_cast<elang::vm::storage_symbol_entry *>(value)) == nullptr)
 					throw elang::vm::compiler_error::storage_expected;
@@ -105,15 +105,16 @@ struct operator_identifier_resolver{
 		if (entry->id() != elang::vm::symbol_entry_id::type)
 			throw elang::vm::compiler_error::type_expected;
 
-		return ("@" + entry->mangle());
+		return (elang::vm::machine::compiler.mangle(elang::vm::mangle_target::operator_) + entry->mangle());
 	}
 
 	static std::string mangle(elang::common::operator_id id){
-		return ("@" + elang::common::utils::mangle_operator_symbol(id));
+		return (elang::vm::machine::compiler.mangle(elang::vm::mangle_target::operator_) + elang::common::utils::mangle_operator_symbol(id));
 	}
 
 	static std::string mangle(const operator_symbol &ast){
-		return ("@" + elang::common::utils::mangle_operator_symbol(ast.first, std::string(ast.second.data(), ast.second.size())));
+		return (elang::vm::machine::compiler.mangle(elang::vm::mangle_target::operator_) +
+			elang::common::utils::mangle_operator_symbol(ast.first, std::string(ast.second.data(), ast.second.size())));
 	}
 
 	template <typename id_type>
@@ -131,13 +132,28 @@ struct identifier_traverser{
 		if (entry == nullptr)//Entry not found
 			throw elang::vm::compiler_error::undefined;
 
-		if (entry->id() != elang::vm::symbol_entry_id::variable)
+		auto this_ = ELANG_AST_COMMON_TRAVERSER_OUT;
+		auto variable_entry = reinterpret_cast<elang::vm::variable_symbol_entry *>(entry);
+
+		if (variable_entry == nullptr)
 			throw elang::vm::compiler_error::variable_expected;
 
-		ELANG_AST_COMMON_TRAVERSER_OUT->value = entry;
-		ELANG_AST_COMMON_TRAVERSER_OUT->type = entry->type();
-		ELANG_AST_COMMON_TRAVERSER_OUT->is_constant = ELANG_AST_COMMON_TRAVERSER_OUT->type->is_const();
-		ELANG_AST_COMMON_TRAVERSER_OUT->is_static = ELANG_IS(entry->attributes(), elang::vm::symbol_entry_attribute::static_);
+		this_->type = variable_entry->type();
+		if (ELANG_IS(variable_entry->attributes(), elang::vm::symbol_entry_attribute::static_const) &&
+			(this_->type->is_numeric() || this_->type->is_null_pointer() || this_->type->is_pointer())){//Resolve value
+			this_->is_constant = this_->is_static = true;
+			if (this_->type->is_integral() || this_->type->is_null_pointer() || this_->type->is_pointer()){
+				auto id = (this_->type->is_integral() ? elang::common::primitive_type_id::int64_ : elang::common::primitive_type_id::pointer);
+				this_->value = integer_value_info{ elang::vm::machine::compiler.get_static_const_value<__int64>(*variable_entry), id };
+			}
+			else//Float
+				this_->value = elang::vm::machine::compiler.get_static_const_value<long double>(*variable_entry);
+		}
+		else{//Resolve at runtime
+			this_->is_static = false;
+			this_->is_constant = this_->type->is_const();
+			this_->value = variable_operand_value_info{ variable_entry };
+		}
 	}
 };
 
