@@ -123,15 +123,16 @@ namespace elang::vm{
 
 		virtual type_info_ptr_type type() const override;
 
-		virtual instruction_operand_ptr_type reference();
+		virtual void add_reference();
 
 		virtual size_type reference_count() const;
+
+		virtual size_type stack_offset() const;
 
 	protected:
 		type_info_ptr_type type_;
 		size_type stack_offset_;
 		size_type ref_count_;
-		instruction_operand_ptr_type ref_;
 	};
 
 	class function_symbol_entry : public storage_symbol_entry{
@@ -228,7 +229,7 @@ namespace elang::vm{
 	class class_type_symbol_entry : public type_symbol_entry{
 	public:
 		struct base_info_type{
-			ptr_type value;
+			class_type_symbol_entry *value;
 			attribute_type attributes;
 		};
 
@@ -247,7 +248,7 @@ namespace elang::vm{
 
 		virtual symbol_entry *find_base_or_this(const std::string &key);
 
-		virtual void add_base(const std::string &key, ptr_type value, attribute_type attributes);
+		virtual void add_base(const std::string &key, class_type_symbol_entry *value, attribute_type attributes);
 
 		virtual bool is_direct_base(symbol_entry &value) const;
 

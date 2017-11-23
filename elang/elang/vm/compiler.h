@@ -77,6 +77,9 @@ namespace elang::vm{
 
 		struct current_context_info_type{
 			storage_symbol_entry *value;
+			storage_symbol_entry *static_search_context;
+			storage_symbol_entry *search_context;
+			std::size_t search_offset;
 			bool bubble_search;
 		};
 
@@ -109,7 +112,7 @@ namespace elang::vm{
 
 		void add_warning(compiler_warning value);
 
-		symbol_entry *find(const std::string &key) const;
+		symbol_entry *find(const std::string &key);
 
 		type_info_ptr_type find_primitive_type(primitive_type_id_type id) const;
 

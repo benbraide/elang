@@ -20,6 +20,7 @@ namespace elang::common{
 		int64_,
 		uint64_,
 		float_,
+		pointer,
 	};
 }
 

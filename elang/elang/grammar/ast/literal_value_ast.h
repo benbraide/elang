@@ -50,23 +50,23 @@ struct literal_value_traverser{
 
 	template <typename string_type>
 	static void get_char(const std::string &value, bool is_escaped, operand_value_info &out){
-		if (is_escaped){
-			string_type escaped_value;
-			elang::common::utils::escape_string(value.begin(), value.end(), escaped_value);
-			if (escaped_value.size() == 1u)
-				out.value = static_cast<__int64>(escaped_value[0]);
-			else//Error
-				throw elang::vm::compiler_error::bad_char;
-		}
-		else if (value.size() == 1u)
-			out.value = static_cast<__int64>(value[0]);
-		else//Error
-			throw elang::vm::compiler_error::bad_char;
-
 		if (std::is_same<string_type, std::string>::value)
 			out.type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::char_);
 		else//Wide
 			out.type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::wchar_);
+
+		if (is_escaped){
+			string_type escaped_value;
+			elang::common::utils::escape_string(value.begin(), value.end(), escaped_value);
+			if (escaped_value.size() == 1u)
+				out.value = integer_value_info{ static_cast<__int64>(escaped_value[0]), out.type->primitive_id() };
+			else//Error
+				throw elang::vm::compiler_error::bad_char;
+		}
+		else if (value.size() == 1u)
+			out.value = integer_value_info{ static_cast<__int64>(value[0]), out.type->primitive_id() };
+		else//Error
+			throw elang::vm::compiler_error::bad_char;
 	}
 
 	template <typename target_type, typename value_type>
@@ -87,8 +87,7 @@ struct literal_value_traverser{
 	ELANG_AST_COMMON_TRAVERSER_BEGIN(literal_value_traverser)
 
 	void operator()(const integral_literal &ast) const{
-		auto suffix = ast.second.value_or(elang::common::numeric_literal_suffix::int32);
-		switch (suffix){
+		switch (ast.second.value_or(elang::common::numeric_literal_suffix::int32)){
 		case elang::common::numeric_literal_suffix::int8:
 			check_numeric_size<__int8>(ast.first);
 			ELANG_AST_COMMON_TRAVERSER_OUT->type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::int8_);
@@ -126,7 +125,7 @@ struct literal_value_traverser{
 			break;
 		}
 
-		ELANG_AST_COMMON_TRAVERSER_OUT->value = ast.first;
+		ELANG_AST_COMMON_TRAVERSER_OUT->value = integer_value_info{ ast.first, ELANG_AST_COMMON_TRAVERSER_OUT->type->primitive_id() };
 		ELANG_AST_COMMON_TRAVERSER_OUT->is_constant = true;
 		ELANG_AST_COMMON_TRAVERSER_OUT->is_static = true;
 	}

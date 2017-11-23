@@ -114,21 +114,22 @@ struct static_evaluator{
 			return;
 		}
 
+		__int64 computed;
 		switch (op){
 		case elang::common::operator_id::plus:
-			left.value = (boost::apply_visitor(get_int_value(), left.value) + boost::apply_visitor(get_int_value(), right.value));
+			computed = (boost::apply_visitor(get_int_value(), left.value) + boost::apply_visitor(get_int_value(), right.value));
 			break;
 		case elang::common::operator_id::minus:
-			left.value = (boost::apply_visitor(get_int_value(), left.value) - boost::apply_visitor(get_int_value(), right.value));
+			computed = (boost::apply_visitor(get_int_value(), left.value) - boost::apply_visitor(get_int_value(), right.value));
 			break;
 		case elang::common::operator_id::times:
-			left.value = (boost::apply_visitor(get_int_value(), left.value) * boost::apply_visitor(get_int_value(), right.value));
+			computed = (boost::apply_visitor(get_int_value(), left.value) * boost::apply_visitor(get_int_value(), right.value));
 			break;
 		case elang::common::operator_id::divide:
 		{
 			auto right_value = boost::apply_visitor(get_int_value(), right.value);
 			if (right_value != 0)
-				left.value = (boost::apply_visitor(get_int_value(), left.value) / right_value);
+				computed = (boost::apply_visitor(get_int_value(), left.value) / right_value);
 			else//Error
 				throw elang::vm::machine_error::division_by_zero;
 			break;
@@ -137,25 +138,25 @@ struct static_evaluator{
 		{
 			auto right_value = boost::apply_visitor(get_int_value(), right.value);
 			if (right_value != 0)
-				left.value = (boost::apply_visitor(get_int_value(), left.value) % right_value);
+				computed = (boost::apply_visitor(get_int_value(), left.value) % right_value);
 			else//Error
 				throw elang::vm::machine_error::division_by_zero;
 			break;
 		}
 		case elang::common::operator_id::left_shift:
-			left.value = static_cast<__int64>(boost::apply_visitor(get_uint_value(), left.value) << boost::apply_visitor(get_uint_value(), right.value));
+			computed = static_cast<__int64>(boost::apply_visitor(get_uint_value(), left.value) << boost::apply_visitor(get_uint_value(), right.value));
 			break;
 		case elang::common::operator_id::right_shift:
-			left.value = static_cast<__int64>(boost::apply_visitor(get_uint_value(), left.value) >> boost::apply_visitor(get_uint_value(), right.value));
+			computed = static_cast<__int64>(boost::apply_visitor(get_uint_value(), left.value) >> boost::apply_visitor(get_uint_value(), right.value));
 			break;
 		case elang::common::operator_id::bitwise_and:
-			left.value = static_cast<__int64>(boost::apply_visitor(get_uint_value(), left.value) & boost::apply_visitor(get_uint_value(), right.value));
+			computed = static_cast<__int64>(boost::apply_visitor(get_uint_value(), left.value) & boost::apply_visitor(get_uint_value(), right.value));
 			break;
 		case elang::common::operator_id::bitwise_xor:
-			left.value = static_cast<__int64>(boost::apply_visitor(get_uint_value(), left.value) ^ boost::apply_visitor(get_uint_value(), right.value));
+			computed = static_cast<__int64>(boost::apply_visitor(get_uint_value(), left.value) ^ boost::apply_visitor(get_uint_value(), right.value));
 			break;
 		case elang::common::operator_id::bitwise_or:
-			left.value = static_cast<__int64>(boost::apply_visitor(get_uint_value(), left.value) | boost::apply_visitor(get_uint_value(), right.value));
+			computed = static_cast<__int64>(boost::apply_visitor(get_uint_value(), left.value) | boost::apply_visitor(get_uint_value(), right.value));
 			break;
 		default:
 			throw elang::vm::compiler_error::invalid_operation;
@@ -163,6 +164,7 @@ struct static_evaluator{
 		}
 
 		left.type = ((left.type->primitive_id() < right.type->primitive_id()) ? right.type : left.type);
+		left.value = integer_value_info{ computed, left.type->primitive_id() };
 	}
 
 	static void integral_boolean(elang::common::operator_id op, operand_value_info &left, operand_value_info &right){
@@ -259,17 +261,20 @@ struct static_evaluator{
 		if (!right.type->is_integral())
 			throw elang::vm::compiler_error::invalid_operation;
 
+		__int64 computed;
 		switch (op){
 		case elang::common::operator_id::plus:
-			left.value = (boost::apply_visitor(get_int_value(), left.value) + (boost::apply_visitor(get_int_value(), right.value) * 8));
+			computed = (boost::apply_visitor(get_int_value(), left.value) + (boost::apply_visitor(get_int_value(), right.value) * 8));
 			break;
 		case elang::common::operator_id::minus:
-			left.value = (boost::apply_visitor(get_int_value(), left.value) - (boost::apply_visitor(get_int_value(), right.value) * 8));
+			computed = (boost::apply_visitor(get_int_value(), left.value) - (boost::apply_visitor(get_int_value(), right.value) * 8));
 			break;
 		default:
 			throw elang::vm::compiler_error::invalid_operation;
 			break;
 		}
+
+		left.value = integer_value_info{ computed, elang::common::primitive_type_id::pointer };
 	}
 
 	static void pointer_boolean(elang::common::operator_id op, operand_value_info &left, operand_value_info &right){
@@ -306,49 +311,43 @@ struct runtime_evaluator{
 		else if (right_reg->type_id() < left_reg->type_id())//Type conversion
 			right_reg = load_register::convert_register(*right_reg, left_reg->type_id());
 
-		auto left_reg_op = std::make_shared<elang::easm::instruction::register_operand>(*left_reg);
-		auto right_reg_op = std::make_shared<elang::easm::instruction::register_operand>(*right_reg);
-
-		elang::easm::instruction::base::ptr_type instruction;
 		switch (op){
 		case elang::common::operator_id::plus:
-			instruction = std::make_shared<elang::easm::instruction::add>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::add>(*left_reg, *right_reg);
 			break;
 		case elang::common::operator_id::minus:
-			instruction = std::make_shared<elang::easm::instruction::sub>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::sub>(*left_reg, *right_reg);
 			break;
 		case elang::common::operator_id::times:
-			instruction = std::make_shared<elang::easm::instruction::mult>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::mult>(*left_reg, *right_reg);
 			break;
 		case elang::common::operator_id::divide:
-			instruction = std::make_shared<elang::easm::instruction::div>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::div>(*left_reg, *right_reg);
 			break;
 		case elang::common::operator_id::modulus:
-			instruction = std::make_shared<elang::easm::instruction::mod>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::mod>(*left_reg, *right_reg);
 			break;
 		case elang::common::operator_id::left_shift:
-			instruction = std::make_shared<elang::easm::instruction::sal>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::sal>(*left_reg, *right_reg);
 			break;
 		case elang::common::operator_id::right_shift:
-			instruction = std::make_shared<elang::easm::instruction::sar>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::sar>(*left_reg, *right_reg);
 			break;
 		case elang::common::operator_id::bitwise_and:
-			instruction = std::make_shared<elang::easm::instruction::and_>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::and_>(*left_reg, *right_reg);
 			break;
 		case elang::common::operator_id::bitwise_xor:
-			instruction = std::make_shared<elang::easm::instruction::xor_>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::xor_>(*left_reg, *right_reg);
 			break;
 		case elang::common::operator_id::bitwise_or:
-			instruction = std::make_shared<elang::easm::instruction::or_>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::or_>(*left_reg, *right_reg);
 			break;
 		default:
 			throw elang::vm::compiler_error::invalid_operation;
 			break;
 		}
 
-		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
-		elang::vm::machine::compiler.store().put(*right_reg);
-
+		elang::vm::machine::compiler.store().put(*right_reg);//Return register
 		left.value = left_reg;//Update value
 		left.type = ((left.type->primitive_id() < right.type->primitive_id()) ? right.type : left.type);
 		left.is_constant = left.is_static = false;//Reset
@@ -368,31 +367,25 @@ struct runtime_evaluator{
 		else if (right_reg->type_id() < left_reg->type_id())//Type conversion
 			right_reg = load_register::convert_register(*right_reg, left_reg->type_id());
 
-		auto left_reg_op = std::make_shared<elang::easm::instruction::register_operand>(*left_reg);
-		auto right_reg_op = std::make_shared<elang::easm::instruction::register_operand>(*right_reg);
-
-		elang::easm::instruction::base::ptr_type instruction;
 		switch (op){
 		case elang::common::operator_id::plus:
-			instruction = std::make_shared<elang::easm::instruction::add>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::add>(*left_reg, *right_reg);
 			break;
 		case elang::common::operator_id::minus:
-			instruction = std::make_shared<elang::easm::instruction::sub>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::sub>(*left_reg, *right_reg);
 			break;
 		case elang::common::operator_id::times:
-			instruction = std::make_shared<elang::easm::instruction::mult>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::mult>(*left_reg, *right_reg);
 			break;
 		case elang::common::operator_id::divide:
-			instruction = std::make_shared<elang::easm::instruction::div>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::div>(*left_reg, *right_reg);
 			break;
 		default:
 			throw elang::vm::compiler_error::invalid_operation;
 			break;
 		}
 
-		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
-		elang::vm::machine::compiler.store().put(*right_reg);
-
+		elang::vm::machine::compiler.store().put(*right_reg);//Return register
 		left.value = left_reg;//Update value
 		left.type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::float_);
 		left.is_constant = left.is_static = false;//Reset
@@ -409,40 +402,34 @@ struct runtime_evaluator{
 				right_reg = load_register::convert_register(*right_reg, left_reg->type_id());
 		}
 
-		auto left_reg_op = std::make_shared<elang::easm::instruction::register_operand>(*left_reg);
-		auto right_reg_op = std::make_shared<elang::easm::instruction::register_operand>(*right_reg);
-
-		elang::easm::instruction::base::ptr_type instruction = std::make_shared<elang::easm::instruction::cmp>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
-		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
-
+		instruction_creator::add_to_text_section<elang::easm::instruction::cmp>(*left_reg, *right_reg);
 		left_reg = load_register::convert_register(*left_reg, elang::vm::machine_value_type_id::byte);
+
 		switch (op){
 		case elang::common::operator_id::less:
-			instruction = std::make_shared<elang::easm::instruction::setl>(std::vector<instruction_operand_ptr_type>{ left_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::setl>(*left_reg);
 			break;
 		case elang::common::operator_id::less_or_equal:
-			instruction = std::make_shared<elang::easm::instruction::setle>(std::vector<instruction_operand_ptr_type>{ left_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::setle>(*left_reg);
 			break;
 		case elang::common::operator_id::equality:
-			instruction = std::make_shared<elang::easm::instruction::sete>(std::vector<instruction_operand_ptr_type>{ left_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::sete>(*left_reg);
 			break;
 		case elang::common::operator_id::inverse_equality:
-			instruction = std::make_shared<elang::easm::instruction::setne>(std::vector<instruction_operand_ptr_type>{ left_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::setne>(*left_reg);
 			break;
 		case elang::common::operator_id::greater_or_equal:
-			instruction = std::make_shared<elang::easm::instruction::setge>(std::vector<instruction_operand_ptr_type>{ left_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::setge>(*left_reg);
 			break;
 		case elang::common::operator_id::greater:
-			instruction = std::make_shared<elang::easm::instruction::setg>(std::vector<instruction_operand_ptr_type>{ left_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::setg>(*left_reg);
 			break;
 		default:
 			throw elang::vm::compiler_error::invalid_operation;
 			break;
 		}
 
-		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
-		elang::vm::machine::compiler.store().put(*right_reg);
-
+		elang::vm::machine::compiler.store().put(*right_reg);//Return register
 		left.value = left_reg;//Update value
 		left.type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::bool_);
 		left.is_constant = left.is_static = false;//Reset
@@ -455,25 +442,20 @@ struct runtime_evaluator{
 		if (right_reg->type_id() != elang::vm::machine_value_type_id::qword)//Type conversion
 			right_reg = load_register::convert_register(*right_reg, elang::vm::machine_value_type_id::qword);
 
-		auto left_reg_op = std::make_shared<elang::easm::instruction::register_operand>(*left_reg);
-		auto right_reg_op = std::make_shared<elang::easm::instruction::register_operand>(*right_reg);
-		auto const_op = std::make_shared<elang::easm::instruction::constant_value_operand<__int64>>(8);
-
-		elang::easm::instruction::base::ptr_type instruction = std::make_shared<elang::easm::instruction::mult>(std::vector<instruction_operand_ptr_type>{ right_reg_op, const_op });
-		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
-
+		instruction_creator::add_to_text_section<elang::easm::instruction::mult>(*right_reg, static_cast<__int64>(8));
 		switch (op){
 		case elang::common::operator_id::plus:
-			instruction = std::make_shared<elang::easm::instruction::add>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::add>(*left_reg, *right_reg);
 			break;
 		case elang::common::operator_id::minus:
-			instruction = std::make_shared<elang::easm::instruction::sub>(std::vector<instruction_operand_ptr_type>{ left_reg_op, right_reg_op });
+			instruction_creator::add_to_text_section<elang::easm::instruction::sub>(*left_reg, *right_reg);
 			break;
 		default:
 			throw elang::vm::compiler_error::invalid_operation;
 			break;
 		}
 
+		elang::vm::machine::compiler.store().put(*right_reg);//Return register
 		left.value = left_reg;//Update value
 		left.is_constant = left.is_static = false;//Reset
 	}
@@ -667,7 +649,7 @@ struct expression_traverser{
 		if (this_->is_constant && this_->is_static && this_->type->is_numeric()){
 			if (this_->type->primitive_id() != type_value->primitive_id()){//Do conversion if types are different
 				if (type_value->is_integral()){
-					this_->value = boost::apply_visitor(get_int_value(), this_->value);
+					this_->value = integer_value_info{ boost::apply_visitor(get_int_value(), this_->value), type_value->primitive_id() };
 					this_->type = elang::vm::machine::compiler.find_primitive_type(type_value->primitive_id());
 				}
 				else if (type_value->is_numeric()){

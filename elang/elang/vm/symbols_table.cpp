@@ -103,25 +103,16 @@ elang::vm::symbol_entry::type_info_ptr_type elang::vm::variable_symbol_entry::ty
 	return type_;
 }
 
-elang::vm::variable_symbol_entry::instruction_operand_ptr_type elang::vm::variable_symbol_entry::reference(){
+void elang::vm::variable_symbol_entry::add_reference(){
 	++ref_count_;
-	if (ref_ != nullptr)
-		return ref_;
-
-	instruction_operand_ptr_type offset;
-	if (stack_offset_ != static_cast<size_type>(-1)){
-		auto constant = std::make_shared<elang::easm::instruction::constant_value_operand<__int64>>(stack_offset_);
-		auto reg = std::make_shared<elang::easm::instruction::register_operand>(*machine::cached_registers.stack_pointer);
-		offset = std::make_shared<elang::easm::instruction::expression_operand>(elang::easm::instruction_operator_id::add, reg, constant);
-	}
-	else//Static or global variable
-		offset = std::make_shared<elang::easm::instruction::label_operand>(mangle(), std::vector<std::string>{});
-
-	return (ref_ = std::make_shared<elang::easm::instruction::memory_operand>(elang::vm::machine_value_type_id::qword, offset));
 }
 
 elang::vm::symbol_entry::size_type elang::vm::variable_symbol_entry::reference_count() const{
 	return ref_count_;
+}
+
+elang::vm::symbol_entry::size_type elang::vm::variable_symbol_entry::stack_offset() const{
+	return stack_offset_;
 }
 
 elang::vm::symbol_entry::id_type elang::vm::function_symbol_entry::id() const{
@@ -262,8 +253,9 @@ elang::vm::symbol_entry *elang::vm::class_type_symbol_entry::find(const std::str
 	if (value != nullptr)
 		return value;
 
+	machine::compiler.info().current_context.search_offset += size_;
 	for (auto &base : base_map_){
-		if ((value = dynamic_cast<class_type_symbol_entry *>(base.second.value.get())->find(key)) != nullptr)
+		if ((value = base.second.value->find(key)) != nullptr)
 			return value;
 	}
 
@@ -280,14 +272,14 @@ elang::vm::symbol_entry *elang::vm::class_type_symbol_entry::find_base_or_this(c
 
 	symbol_entry *value;
 	for (auto &base : base_map_){
-		if ((value = dynamic_cast<class_type_symbol_entry *>(base.second.value.get())->find_base_or_this(key)) != nullptr)
+		if ((value = base.second.value->find_base_or_this(key)) != nullptr)
 			return value;
 	}
 
 	return nullptr;
 }
 
-void elang::vm::class_type_symbol_entry::add_base(const std::string &key, ptr_type value, attribute_type attributes){
+void elang::vm::class_type_symbol_entry::add_base(const std::string &key, class_type_symbol_entry *value, attribute_type attributes){
 	if (!is_direct_base(*value)){
 		base_map_[key] = base_info_type{ value, attributes };
 		base_order_list_.push_back(key);
@@ -298,7 +290,7 @@ void elang::vm::class_type_symbol_entry::add_base(const std::string &key, ptr_ty
 
 bool elang::vm::class_type_symbol_entry::is_direct_base(symbol_entry &value) const{
 	for (auto &base : base_map_){
-		if (base.second.value.get() == &value)
+		if (base.second.value == &value)
 			return true;
 	}
 
@@ -307,7 +299,7 @@ bool elang::vm::class_type_symbol_entry::is_direct_base(symbol_entry &value) con
 
 bool elang::vm::class_type_symbol_entry::is_base(symbol_entry &value) const{
 	for (auto &base : base_map_){
-		if (base.second.value.get() == &value || dynamic_cast<class_type_symbol_entry *>(base.second.value.get())->is_base(value))
+		if (base.second.value == &value || base.second.value->is_base(value))
 			return true;
 	}
 

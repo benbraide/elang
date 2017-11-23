@@ -24,20 +24,32 @@ explicit n(operand_value_info &out) : out_(&out){}
 ELANG_AST_BEGIN
 
 using instruction_operand_ptr_type = elang::easm::instruction::operand_base::ptr_type;
+using instruction_ptr_type = elang::easm::instruction::base::ptr_type;
+
+struct integer_value_info{
+	__int64 value;
+	elang::common::primitive_type_id type;
+};
 
 struct string_operand_value_info{
 	std::string value;
 	bool is_wide;
 };
 
+struct variable_operand_value_info{
+	elang::vm::variable_symbol_entry *value;
+	std::size_t offset;
+};
+
 using operand_value_type = boost::variant<
 	elang::common::constant_value,
-	__int64,
+	integer_value_info,
 	long double,
 	string_operand_value_info,
+	variable_operand_value_info,
 	elang::vm::symbol_entry *,
 	elang::vm::machine_register *,
-	elang::easm::instruction::operand_base::ptr_type
+	instruction_operand_ptr_type
 >;
 
 struct operand_value_info{
@@ -67,8 +79,8 @@ struct get_int_value{
 		
 	}
 
-	__int64 operator ()(__int64 value) const{
-		return value;
+	__int64 operator ()(const integer_value_info &info) const{
+		return info.value;
 	}
 
 	__int64 operator ()(long double value) const{
@@ -82,8 +94,8 @@ struct get_int_value{
 };
 
 struct get_uint_value{
-	unsigned __int64 operator ()(__int64 value) const{
-		return static_cast<unsigned __int64>(value);
+	unsigned __int64 operator ()(const integer_value_info &info) const{
+		return static_cast<unsigned __int64>(info.value);
 	}
 
 	unsigned __int64 operator ()(long double value) const{
@@ -97,8 +109,8 @@ struct get_uint_value{
 };
 
 struct get_float_value{
-	long double operator ()(__int64 value) const{
-		return static_cast<long double>(value);
+	long double operator ()(const integer_value_info &info) const{
+		return static_cast<long double>(info.value);
 	}
 
 	long double operator ()(long double value) const{
@@ -111,10 +123,163 @@ struct get_float_value{
 	}
 };
 
+struct operand_creator{
+	using variant_type = boost::variant<
+		elang::vm::machine_value_type_id,
+		elang::vm::machine_register *,
+		std::string,
+		__int64,
+		long double,
+		instruction_operand_ptr_type
+	>;
+
+	struct memory_type{
+		variant_type value;
+	};
+
+	struct memory_expr_type{
+		std::vector<variant_type> value;
+		bool add;
+	};
+
+	template <typename... args_types>
+	static instruction_operand_ptr_type create_memory(args_types &&... args){
+		return std::make_shared<elang::easm::instruction::memory_operand>(elang::vm::machine_value_type_id::unknown, create(std::forward<value_type>(args)...));
+	}
+
+	static instruction_operand_ptr_type create(elang::vm::machine_value_type_id value_type){
+		auto reg = elang::vm::machine::compiler.store().get(value_type);
+		if (reg == nullptr)//Out of registers
+			throw elang::vm::machine_error::no_register;
+		return std::make_shared<elang::easm::instruction::register_operand>(*reg);
+	}
+
+	static instruction_operand_ptr_type create(elang::vm::machine_register &reg){
+		return std::make_shared<elang::easm::instruction::register_operand>(reg);
+	}
+
+	static instruction_operand_ptr_type create(const std::string &label){
+		return std::make_shared<elang::easm::instruction::label_operand>(label);
+	}
+
+	static instruction_operand_ptr_type create(__int64 value){
+		return std::make_shared<elang::easm::instruction::constant_value_operand<__int64>>(value);
+	}
+
+	static instruction_operand_ptr_type create(long double value){
+		return std::make_shared<elang::easm::instruction::constant_value_operand<long double>>(value);
+	}
+
+	static instruction_operand_ptr_type create(const memory_type &info){
+		return std::make_shared<elang::easm::instruction::memory_operand>(elang::vm::machine_value_type_id::unknown, create(info.value));
+	}
+
+	static instruction_operand_ptr_type create(const memory_expr_type &info){
+		return std::make_shared<elang::easm::instruction::memory_operand>(elang::vm::machine_value_type_id::unknown, create(info.value, info.add));
+	}
+
+	static instruction_operand_ptr_type create(const std::vector<variant_type> &values, bool add = true){
+		if (values.empty())//Error
+			throw elang::vm::compiler_error::unreachable;
+
+		auto op = (add ? elang::easm::instruction_operator_id::add : elang::easm::instruction_operator_id::sub);
+		instruction_operand_ptr_type lop = boost::apply_visitor(operand_creator(), values[0]), rop;
+
+		for (auto iter = std::next(values.begin()); iter != values.end(); ++iter){//Create expressions
+			rop = boost::apply_visitor(operand_creator(), *iter);
+			lop = std::make_shared<elang::easm::instruction::expression_operand>(op, lop, rop);
+		}
+
+		return lop;
+	}
+
+	static instruction_operand_ptr_type create(instruction_operand_ptr_type value){
+		return value;
+	}
+
+	static instruction_operand_ptr_type create(const variant_type &info){
+		return boost::apply_visitor(operand_creator(), info);
+	}
+
+	instruction_operand_ptr_type operator ()(elang::vm::machine_value_type_id value_type) const{
+		return create(value_type);
+	}
+
+	instruction_operand_ptr_type operator ()(elang::vm::machine_register *reg) const{
+		return create(*reg);
+	}
+
+	instruction_operand_ptr_type operator ()(const std::string &label) const{
+		return create(label);
+	}
+
+	instruction_operand_ptr_type operator ()(__int64 value) const{
+		return create(value);
+	}
+
+	instruction_operand_ptr_type operator ()(long double value) const{
+		return create(value);
+	}
+
+	instruction_operand_ptr_type operator ()(instruction_operand_ptr_type value) const{
+		return value;
+	}
+};
+
+struct instruction_creator{
+	template <typename instruction_type>
+	static instruction_ptr_type create(){
+		return std::make_shared<instruction_type>(std::vector<instruction_operand_ptr_type>{});
+	}
+
+	template <typename instruction_type>
+	static instruction_ptr_type create(instruction_operand_ptr_type lhs){
+		return std::make_shared<instruction_type>(std::vector<instruction_operand_ptr_type>{ lhs });
+	}
+
+	template <typename instruction_type>
+	static instruction_ptr_type create(instruction_operand_ptr_type lhs, instruction_operand_ptr_type rhs){
+		return std::make_shared<instruction_type>(std::vector<instruction_operand_ptr_type>{ lhs, rhs });
+	}
+
+	template <typename instruction_type, typename... operands_types>
+	static instruction_ptr_type create(operands_types &&... operands){
+		std::vector<instruction_operand_ptr_type> list;
+		stack_operands(list, std::forward<operands_types>(operands)...);
+		return std::make_shared<instruction_type>(list);
+	}
+
+	template <typename first_type, typename... operands_types>
+	static void stack_operands(std::vector<instruction_operand_ptr_type> &list, const first_type &op, operands_types &&... operands){
+		list.push_back(operand_creator::create(op));
+		stack_operands(list, std::forward<operands_types>(operands)...);
+	}
+
+	template <typename first_type, typename... operands_types>
+	static void stack_operands(std::vector<instruction_operand_ptr_type> &list, first_type &op, operands_types &&... operands){
+		list.push_back(operand_creator::create(op));
+		stack_operands(list, std::forward<operands_types>(operands)...);
+	}
+
+	static void stack_operands(std::vector<instruction_operand_ptr_type> &list){}
+
+	static void add_to_section(elang::easm::section_id id, instruction_ptr_type value){
+		elang::vm::machine::compiler.section(id).add(value);
+	}
+
+	static void add_to_text_section(instruction_ptr_type value){
+		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(value);
+	}
+
+	template <typename instruction_type, typename... operands_types>
+	static void add_to_text_section(operands_types &&... operands){
+		add_to_text_section(create<instruction_type>(std::forward<operands_types>(operands)...));
+	}
+};
+
 struct load_register{
 	static elang::vm::machine_register *load(operand_value_info &info){
-		auto reg = boost::apply_visitor(load_register(), info.value);
-		return ((reg == nullptr) ? integral(boost::get<__int64>(info.value), info.type->id()) : reg);
+		return boost::apply_visitor(load_register(), info.value);
 	}
 
 	static elang::vm::machine_register *get_register(elang::vm::machine_value_type_id value_type){
@@ -132,35 +297,35 @@ struct load_register{
 		if (converted == &reg)//No conversion necessary
 			return converted;
 
-		auto lreg_op = std::make_shared<elang::easm::instruction::register_operand>(*converted);
-		auto rreg_op = std::make_shared<elang::easm::instruction::register_operand>(reg);
-
-		auto instruction = std::make_shared<elang::easm::instruction::extended_mov>(std::vector<instruction_operand_ptr_type>{ lreg_op, rreg_op });
-		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
-
+		instruction_creator::add_to_text_section<elang::easm::instruction::extended_mov>(reg, *converted);
 		return converted;
 	}
 
 	static elang::vm::machine_register *integral(__int64 value, elang::vm::machine_value_type_id value_type){
 		auto reg = get_register(value_type);
-		auto reg_op = std::make_shared<elang::easm::instruction::register_operand>(*reg);
-
-		auto const_op = std::make_shared<elang::easm::instruction::constant_value_operand<__int64>>(value);
-		auto instruction = std::make_shared<elang::easm::instruction::mov>(std::vector<instruction_operand_ptr_type>{ reg_op, const_op });
-
-		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
+		instruction_creator::add_to_text_section<elang::easm::instruction::mov>(*reg, value);
 		return reg;
 	}
 
 	elang::vm::machine_register *operator ()(elang::common::constant_value value) const{
+		__int64 intern_val;
 		elang::vm::machine_value_type_id value_type;
+
 		switch (value){
 		case elang::common::constant_value::false_:
+			intern_val = 0;
+			value_type = elang::vm::machine_value_type_id::byte;
+			break;
 		case elang::common::constant_value::true_:
+			intern_val = 1;
+			value_type = elang::vm::machine_value_type_id::byte;
+			break;
 		case elang::common::constant_value::indeterminate:
+			intern_val = -1;
 			value_type = elang::vm::machine_value_type_id::byte;
 			break;
 		case elang::common::constant_value::nullptr_:
+			intern_val = 0;
 			value_type = elang::vm::machine_value_type_id::qword;
 			break;
 		default:
@@ -169,56 +334,73 @@ struct load_register{
 		}
 
 		auto reg = get_register(value_type);
-		auto reg_op = std::make_shared<elang::easm::instruction::register_operand>(*reg);
+		instruction_creator::add_to_text_section<elang::easm::instruction::mov>(*reg, intern_val);
+		return reg;
+	}
 
-		instruction_operand_ptr_type const_op;
-		switch (value){
-		case elang::common::constant_value::false_:
-			const_op = std::make_shared<elang::easm::instruction::constant_value_operand<__int64>>(0);
-			break;
-		case elang::common::constant_value::true_:
-			const_op = std::make_shared<elang::easm::instruction::constant_value_operand<__int64>>(1);
-			break;
-		case elang::common::constant_value::indeterminate:
-			const_op = std::make_shared<elang::easm::instruction::constant_value_operand<__int64>>(-1);
-			break;
-		case elang::common::constant_value::nullptr_:
-			const_op = std::make_shared<elang::easm::instruction::constant_value_operand<__int64>>(0);
-			break;
+	elang::vm::machine_register *operator ()(const integer_value_info &info) const{
+		if (info.type == elang::common::primitive_type_id::pointer)//Pointer value
+			return integral(info.value, elang::vm::machine_value_type_id::qword);
+
+		switch (info.type){
+		case elang::common::primitive_type_id::char_:
+		case elang::common::primitive_type_id::int8_:
+		case elang::common::primitive_type_id::uint8_:
+			return integral(info.value, elang::vm::machine_value_type_id::byte);
+		case elang::common::primitive_type_id::wchar_:
+		case elang::common::primitive_type_id::int16_:
+		case elang::common::primitive_type_id::uint16_:
+			return integral(info.value, elang::vm::machine_value_type_id::word);
+		case elang::common::primitive_type_id::int32_:
+		case elang::common::primitive_type_id::uint32_:
+			return integral(info.value, elang::vm::machine_value_type_id::dword);
+		case elang::common::primitive_type_id::pointer:
+		case elang::common::primitive_type_id::int64_:
+		case elang::common::primitive_type_id::uint64_:
+			return integral(info.value, elang::vm::machine_value_type_id::qword);
 		default:
 			throw elang::vm::compiler_error::unreachable;
 			break;
 		}
 
-		auto instruction = std::make_shared<elang::easm::instruction::mov>(std::vector<instruction_operand_ptr_type>{ reg_op, const_op });
-		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
-
-		return reg;
-	}
-
-	elang::vm::machine_register *operator ()(__int64 value) const{
 		return nullptr;
 	}
 
 	elang::vm::machine_register *operator ()(long double value) const{
 		auto reg = get_register(elang::vm::machine_value_type_id::float_);
-		auto reg_op = std::make_shared<elang::easm::instruction::register_operand>(*reg);
-
-		auto const_op = std::make_shared<elang::easm::instruction::constant_value_operand<long double>>(value);
-		auto instruction = std::make_shared<elang::easm::instruction::mov>(std::vector<instruction_operand_ptr_type>{ reg_op, const_op });
-
-		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
+		instruction_creator::add_to_text_section<elang::easm::instruction::mov>(*reg, value);
 		return reg;
 	}
 
-	elang::vm::machine_register *operator ()(const string_operand_value_info &value) const{
+	elang::vm::machine_register *operator ()(const string_operand_value_info &info) const{
 		auto reg = get_register(elang::vm::machine_value_type_id::qword);
-		auto reg_op = std::make_shared<elang::easm::instruction::register_operand>(*reg);
+		instruction_creator::add_to_text_section<elang::easm::instruction::mov>(*reg, info.value);
+		return reg;
+	}
 
-		auto label_op = std::make_shared<elang::easm::instruction::label_operand>(value.value);
-		auto instruction = std::make_shared<elang::easm::instruction::mov>(std::vector<instruction_operand_ptr_type>{ reg_op, label_op });
+	elang::vm::machine_register *operator ()(const variable_operand_value_info &info) const{
+		auto reg = get_register(elang::vm::machine_value_type_id::qword);
+		auto static_search_context = elang::vm::machine::compiler.info().current_context.static_search_context;
 
-		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
+		instruction_operand_ptr_type base_op;
+		if (ELANG_IS(info.value->attributes(), elang::vm::symbol_entry_attribute::static_))
+			base_op = operand_creator::create(info.value->mangle());
+		else if (static_search_context != nullptr)//Offset from static start
+			base_op = operand_creator::create(static_search_context->mangle());
+		else//Local storage
+			base_op = operand_creator::create(*elang::vm::machine::cached_registers.base_pointer);
+
+		if (info.offset > 0u || info.value->stack_offset() > 0u){//Add offset
+			operand_creator::memory_expr_type expr{
+				{ base_op, static_cast<__int64>(info.offset + info.value->stack_offset()) },//Expression operands
+				true																		//Perform addition
+			};
+
+			instruction_creator::add_to_text_section<elang::easm::instruction::mov>(*reg, expr);
+		}
+		else//No offset
+			instruction_creator::add_to_text_section<elang::easm::instruction::mov>(*reg, operand_creator::memory_type{ base_op });
+
 		return reg;
 	}
 
@@ -241,13 +423,9 @@ struct load_register{
 		return value;
 	}
 
-	elang::vm::machine_register *operator ()(elang::easm::instruction::operand_base::ptr_type value) const{
+	elang::vm::machine_register *operator ()(instruction_operand_ptr_type value) const{
 		auto reg = get_register(value->value_type());
-		auto reg_op = std::make_shared<elang::easm::instruction::register_operand>(*reg);
-
-		auto instruction = std::make_shared<elang::easm::instruction::mov>(std::vector<instruction_operand_ptr_type>{ reg_op, value });
-		elang::vm::machine::compiler.section(elang::easm::section_id::text).add(instruction);
-
+		instruction_creator::add_to_text_section<elang::easm::instruction::mov>(*reg, value);
 		return reg;
 	}
 };
