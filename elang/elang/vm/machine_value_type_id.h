@@ -97,15 +97,15 @@ namespace elang::vm{
 		static std::string machine_value_type_id_to_string(machine_value_type_id id){
 			switch (id){
 			case machine_value_type_id::byte:
-				return "byte";
+				return "BYTE";
 			case machine_value_type_id::word:
-				return "word";
+				return "WORD";
 			case machine_value_type_id::dword:
-				return "dword";
+				return "DWORD";
 			case machine_value_type_id::qword:
-				return "qword";
+				return "QWORD";
 			case machine_value_type_id::float_:
-				return "float";
+				return "FLOAT";
 			default:
 				break;
 			}

@@ -225,6 +225,8 @@ struct asm_traverser{
 			return std::make_shared<elang::easm::instruction::dq>(std::move(operands));
 		case elang::easm::instruction::id::df:
 			return std::make_shared<elang::easm::instruction::df>(std::move(operands));
+		case elang::easm::instruction::id::dz:
+			return std::make_shared<elang::easm::instruction::dz>(std::move(operands));
 		default:
 			break;
 		}

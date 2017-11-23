@@ -83,6 +83,46 @@ namespace elang::easm::instruction{
 	using dd = decl<elang::vm::machine_value_type_id::dword>;
 	using dq = decl<elang::vm::machine_value_type_id::qword>;
 	using df = decl<elang::vm::machine_value_type_id::float_>;
+
+	class dz : public base{
+	public:
+		template <typename... args_types>
+		explicit dz(args_types &&... args)
+			: base("dz", std::forward<args_types>(args)...){
+		}
+
+		virtual size_type instruction_bytes() const{
+			return (operands_.empty() ? 0u : operands_[0]->read_64bits());
+		}
+
+		virtual void validate_operands() const override{
+			if (operands_.size() != 1u)
+				throw error_type::bad_operand_count;
+
+			if (operands_[0]->is_expression() || !operands_[0]->is_constant() || operands_[0]->value_type() == value_type_id_type::float_)
+				throw error_type::bad_operand;
+		}
+
+		virtual void write_memory(uint64_type &address, char *buffer) const override{
+			auto size = operands_[0]->read_64bits();
+			if (size == 0u)//Nothing to allocate
+				return;
+
+			if (buffer == nullptr)//Allocate buffer
+				buffer = elang::vm::machine::memory_manager.allocate(size, address)->data.get();
+
+			elang::vm::machine::memory_manager.fill(address, '\0', size);
+			address += size;
+		}
+
+		virtual void execute_and_update_instruction_pointer(register_type &instruction_pointer) const override{
+			execute();
+		}
+
+		virtual void execute() const override{
+			throw error_type::no_execution;
+		}
+	};
 }
 
 #endif /* !ELANG_DECL_INSTRUCTION_H */

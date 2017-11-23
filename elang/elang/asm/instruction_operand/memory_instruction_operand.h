@@ -58,7 +58,7 @@ namespace elang::easm::instruction{
 
 		virtual void print(writer_type &writer) const override{
 			if (value_type_id_ != value_type_id_type::unknown)
-				writer.write(elang::vm::machine_value_type_id_utils::machine_value_type_id_to_string(value_type_id_)).write(" ptr");
+				writer.write(elang::vm::machine_value_type_id_utils::machine_value_type_id_to_string(value_type_id_)).write(" PTR");
 
 			writer.write("[");
 			value_->print(writer);

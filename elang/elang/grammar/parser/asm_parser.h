@@ -100,6 +100,7 @@ namespace elang::grammar::parser{
 				("dd", elang::easm::instruction::id::dd)
 				("dq", elang::easm::instruction::id::dq)
 				("df", elang::easm::instruction::id::df)
+				("dz", elang::easm::instruction::id::dz)
 				;
 		}
 	} asm_decl_mnemonic_symbols_;

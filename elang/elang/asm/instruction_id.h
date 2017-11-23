@@ -59,6 +59,7 @@ namespace elang::easm::instruction{
 		dd,
 		dq,
 		df,
+		dz,
 		times,
 	};
 }
