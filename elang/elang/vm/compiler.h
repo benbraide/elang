@@ -27,6 +27,10 @@ namespace elang::vm{
 		variable_expected,
 		invalid_operation,
 		invalid_cast,
+		bad_storage_class,
+		id_required,
+		bad_type,
+		initialization_required,
 		no_static_const_value,
 		unreachable,
 	};
