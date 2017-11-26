@@ -3,6 +3,7 @@
 #ifndef ELANG_SYMBOLS_TABLE_H
 #define ELANG_SYMBOLS_TABLE_H
 
+#include <any>
 #include <string>
 #include <memory>
 #include <vector>
@@ -11,6 +12,7 @@
 #include "../common/macro.h"
 #include "../common/primitive_type_id.h"
 
+#include "../asm/instruction_section.h"
 #include "../asm/instruction_operand/instruction_operand_base.h"
 
 #include "type_info.h"
@@ -87,9 +89,93 @@ namespace elang::vm{
 	class function_symbol_entry;
 	class function_list_symbol_entry;
 
+	class variable_symbol_entry : public named_symbol_entry{
+	public:
+		typedef elang::easm::instruction::operand_base::ptr_type instruction_operand_ptr_type;
+
+		template <typename... args_types>
+		explicit variable_symbol_entry(args_types &&... args)
+			: named_symbol_entry(std::forward<args_types>(args)...){}
+
+		virtual id_type id() const override;
+
+		virtual type_info_ptr_type type() const override;
+
+		virtual void add_reference();
+
+		virtual size_type reference_count() const;
+
+		virtual void set_stack_offset(size_type value);
+
+		virtual size_type stack_offset() const;
+
+		template <typename value_type>
+		void set_initialization(const value_type &value){
+			initialization_ = value;
+		}
+
+		template <typename target_type>
+		const std::decay_t<target_type> &get_initialization() const{
+			return std::any_cast<const std::decay_t<target_type> &>(initialization_);
+		}
+
+		virtual bool has_initialization() const{
+			return initialization_.has_value();
+		}
+
+	protected:
+		std::any initialization_;
+	};
+
+	class basic_variable_symbol_entry : public variable_symbol_entry{
+	public:
+		template <typename... args_types>
+		explicit basic_variable_symbol_entry(type_info_ptr_type type, args_types &&... args)
+			: variable_symbol_entry(std::forward<args_types>(args)...), type_(type), stack_offset_(static_cast<size_type>(-1)){}
+
+		virtual type_info_ptr_type type() const override;
+
+		virtual void add_reference();
+
+		virtual size_type reference_count() const;
+
+		virtual void set_stack_offset(size_type value);
+
+		virtual size_type stack_offset() const;
+
+	protected:
+		type_info_ptr_type type_;
+		size_type stack_offset_;
+		size_type ref_count_;
+	};
+
+	class reference_variable_symbol_entry : public variable_symbol_entry{
+	public:
+		template <typename... args_types>
+		explicit reference_variable_symbol_entry(variable_symbol_entry &target, args_types &&... args)
+			: variable_symbol_entry(std::forward<args_types>(args)...), target_(&target){
+			//type_ = target_->type()->clone(attributes_);
+		}
+
+		virtual type_info_ptr_type type() const override;
+
+		virtual void add_reference() override;
+
+		virtual size_type reference_count() const override;
+
+		virtual void set_stack_offset(size_type value) override;
+
+		virtual size_type stack_offset() const override;
+
+	protected:
+		variable_symbol_entry *target_;
+		type_info_ptr_type type_;
+	};
+
 	class storage_symbol_entry : public named_symbol_entry{
 	public:
 		typedef std::unordered_map<std::string, ptr_type> map_type;
+		typedef std::list<ptr_type> list_type;
 
 		template <typename... args_types>
 		explicit storage_symbol_entry(args_types &&... args)
@@ -98,6 +184,10 @@ namespace elang::vm{
 		virtual bool is_storage() const override;
 
 		virtual void add(const std::string &key, ptr_type value);
+
+		virtual variable_symbol_entry *add_variable(const std::string &name, type_info_ptr_type type, attribute_type attributes);
+
+		virtual variable_symbol_entry *add_reference_variable(const std::string &name, variable_symbol_entry &target, attribute_type attributes);
 
 		virtual symbol_entry *find(const std::string &key) const;
 
@@ -113,44 +203,17 @@ namespace elang::vm{
 		function_list_symbol_entry *get_function_list_(const std::string &key);
 
 		map_type map_;
-	};
-
-	class variable_symbol_entry : public named_symbol_entry{
-	public:
-		typedef elang::easm::instruction::operand_base::ptr_type instruction_operand_ptr_type;
-
-		template <typename... args_types>
-		explicit variable_symbol_entry(type_info_ptr_type type, args_types &&... args)
-			: named_symbol_entry(std::forward<args_types>(args)...), type_(type){
-			if (!ELANG_IS(attributes_, attribute_type::static_))
-				stack_offset_ = dynamic_cast<storage_symbol_entry *>(parent_)->get_stack_offset(type_->size());
-			else//Static variable does not use stack storage
-				stack_offset_ = static_cast<size_type>(-1);
-		}
-
-		virtual id_type id() const override;
-
-		virtual type_info_ptr_type type() const override;
-
-		virtual void add_reference();
-
-		virtual size_type reference_count() const;
-
-		virtual size_type stack_offset() const;
-
-	protected:
-		type_info_ptr_type type_;
-		size_type stack_offset_;
-		size_type ref_count_;
+		list_type order_list_;
 	};
 
 	class function_symbol_entry : public storage_symbol_entry{
 	public:
 		typedef std::vector<type_info_ptr_type> type_info_ptr_list_type;
+		typedef std::list<variable_symbol_entry *> variable_symbol_list_type;
 
 		template <typename... args_types>
-		explicit function_symbol_entry(type_info_ptr_type type, args_types &&... args)
-			: storage_symbol_entry(std::forward<args_types>(args)...), type_(type){}
+		explicit function_symbol_entry(type_info_ptr_type return_type, args_types &&... args)
+			: storage_symbol_entry(std::forward<args_types>(args)...), return_type_(return_type){}
 
 		virtual id_type id() const override;
 
@@ -164,11 +227,17 @@ namespace elang::vm{
 
 		virtual size_type get_stack_offset(size_type new_size) override;
 
+		virtual variable_symbol_entry *add_parameter(const std::string &name, type_info_ptr_type type);
+
 		virtual int score(const type_info_ptr_list_type &parameter_types) const;
 
 	protected:
-		type_info_ptr_type type_;
+		virtual type_info_ptr_type make_type_() const;
+
+		type_info_ptr_type return_type_;
+		mutable type_info_ptr_type type_;
 		size_type size_;
+		variable_symbol_list_type parameter_order_list_;
 	};
 
 	class function_list_symbol_entry : public named_symbol_entry{
