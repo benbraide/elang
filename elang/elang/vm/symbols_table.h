@@ -61,6 +61,8 @@ namespace elang::vm{
 
 		virtual bool is(const std::string &name) const = 0;
 
+		virtual bool is_storage() const;
+
 		virtual void define();
 
 	protected:
@@ -93,9 +95,15 @@ namespace elang::vm{
 		explicit storage_symbol_entry(args_types &&... args)
 			: named_symbol_entry(std::forward<args_types>(args)...){}
 
+		virtual bool is_storage() const override;
+
 		virtual void add(const std::string &key, ptr_type value);
 
 		virtual symbol_entry *find(const std::string &key) const;
+
+		virtual symbol_entry *find_storage(const std::string &key) const;
+
+		virtual symbol_entry *find_storage_or_any(const std::string &key) const;
 
 		virtual size_type get_stack_offset(size_type new_size);
 
@@ -151,6 +159,8 @@ namespace elang::vm{
 		virtual type_info_ptr_type type() const override;
 
 		virtual std::string mangle() const override;
+
+		virtual bool is_storage() const override;
 
 		virtual size_type get_stack_offset(size_type new_size) override;
 
@@ -258,6 +268,15 @@ namespace elang::vm{
 	protected:
 		string_list_type base_order_list_;
 		base_map_type base_map_;
+	};
+
+	class unnamed_class_type_symbol_entry : public class_type_symbol_entry{
+	public:
+		template <typename... args_types>
+		explicit unnamed_class_type_symbol_entry(args_types &&... args)
+			: class_type_symbol_entry(std::forward<args_types>(args)...){}
+
+		virtual std::string mangle() const override;
 	};
 
 	class namespace_symbol_entry : public storage_symbol_entry{

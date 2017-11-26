@@ -118,14 +118,35 @@ void elang::vm::compiler::add_warning(compiler_warning value){
 }
 
 elang::vm::symbol_entry *elang::vm::compiler::find(const std::string &key){
-	if (!info_.current_context.bubble_search)
-		return info_.current_context.value->find(key);
-
 	symbol_entry *value;
 	info_.current_context.search_offset = 0u;
 
 	for (auto context = info_.current_context.value; context != nullptr; context = dynamic_cast<storage_symbol_entry *>(context->parent())){
 		if ((value = context->find(key)) != nullptr)
+			return value;
+	}
+
+	return nullptr;
+}
+
+elang::vm::symbol_entry *elang::vm::compiler::find_storage(const std::string &key){
+	symbol_entry *value;
+	info_.current_context.search_offset = 0u;
+
+	for (auto context = info_.current_context.value; context != nullptr; context = dynamic_cast<storage_symbol_entry *>(context->parent())){
+		if ((value = context->find_storage(key)) != nullptr)
+			return value;
+	}
+
+	return nullptr;
+}
+
+elang::vm::symbol_entry *elang::vm::compiler::find_storage_or_any(const std::string &key){
+	symbol_entry *value;
+	info_.current_context.search_offset = 0u;
+
+	for (auto context = info_.current_context.value; context != nullptr; context = dynamic_cast<storage_symbol_entry *>(context->parent())){
+		if ((value = context->find_storage_or_any(key)) != nullptr)
 			return value;
 	}
 

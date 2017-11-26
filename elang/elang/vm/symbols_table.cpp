@@ -30,6 +30,10 @@ elang::vm::symbol_entry::type_info_ptr_type elang::vm::symbol_entry::type() cons
 	return nullptr;
 }
 
+bool elang::vm::symbol_entry::is_storage() const{
+	return false;
+}
+
 void elang::vm::symbol_entry::define(){
 	ELANG_REMOVE(attributes_, attribute_type::undefined_);
 }
@@ -46,6 +50,10 @@ std::string elang::vm::named_symbol_entry::mangle() const{
 
 bool elang::vm::named_symbol_entry::is(const std::string &name) const{
 	return (name == name_);
+}
+
+bool elang::vm::storage_symbol_entry::is_storage() const{
+	return true;
 }
 
 void elang::vm::storage_symbol_entry::add(const std::string &key, ptr_type value){
@@ -70,7 +78,20 @@ void elang::vm::storage_symbol_entry::add(const std::string &key, ptr_type value
 
 elang::vm::symbol_entry *elang::vm::storage_symbol_entry::find(const std::string &key) const{
 	auto entry = map_.find(key);
-	return ((entry == map_.end()) ? nullptr : entry->second.get());
+	if ((entry == map_.end()))//Try storage if applicable
+		return (::isdigit(key[0]) ? nullptr : find_storage(key));
+	return entry->second.get();
+}
+
+elang::vm::symbol_entry *elang::vm::storage_symbol_entry::find_storage(const std::string &key) const{
+	return (find(std::to_string(key.size()) + key));
+}
+
+elang::vm::symbol_entry *elang::vm::storage_symbol_entry::find_storage_or_any(const std::string &key) const{
+	auto entry = map_.find(std::to_string(key.size()) + key);
+	if ((entry != map_.end()))//Storage found
+		return entry->second.get();
+	return (((entry = map_.find(key)) == map_.end()) ? nullptr : entry->second.get());
 }
 
 elang::vm::symbol_entry::size_type elang::vm::storage_symbol_entry::get_stack_offset(size_type new_size){
@@ -129,6 +150,10 @@ elang::vm::symbol_entry::type_info_ptr_type elang::vm::function_symbol_entry::ty
 
 std::string elang::vm::function_symbol_entry::mangle() const{
 	return (storage_symbol_entry::mangle() + dynamic_cast<function_type_info *>(type_.get())->mangle_parameters());
+}
+
+bool elang::vm::function_symbol_entry::is_storage() const{
+	return false;
 }
 
 elang::vm::symbol_entry::size_type elang::vm::function_symbol_entry::get_stack_offset(size_type new_size){
@@ -304,6 +329,10 @@ bool elang::vm::class_type_symbol_entry::is_base(symbol_entry &value) const{
 	}
 
 	return false;
+}
+
+std::string elang::vm::unnamed_class_type_symbol_entry::mangle() const{
+	return name_;
 }
 
 elang::vm::symbol_entry::id_type elang::vm::namespace_symbol_entry::id() const{

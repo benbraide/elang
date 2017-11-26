@@ -122,6 +122,10 @@ namespace elang::vm{
 
 		symbol_entry *find(const std::string &key);
 
+		symbol_entry *find_storage(const std::string &key);
+
+		symbol_entry *find_storage_or_any(const std::string &key);
+
 		type_info_ptr_type find_primitive_type(primitive_type_id_type id) const;
 
 		template <typename value_type>

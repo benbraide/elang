@@ -34,7 +34,9 @@ namespace elang::grammar::parser{
 	} primitive_type_symbols_;
 
 	auto resolve_type = [](auto &ctx){
-		auto entry = ast::identifier_resolver()(x3::_attr(ctx));
+		ast::storage_resolver resolver(true);//Search for storages only
+		auto entry = resolver(x3::_attr(ctx));
+
 		x3::_val(ctx) = entry;
 		x3::_pass(ctx) = (entry != nullptr && entry->id() == elang::vm::symbol_entry_id::type);
 	};
