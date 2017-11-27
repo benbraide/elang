@@ -92,8 +92,7 @@ struct declaration_traverser{
 		else if (ELANG_IS(attributes, elang::vm::symbol_entry_attribute::static_))//Explicit definition required
 			ELANG_SET(attributes, elang::vm::symbol_entry_attribute::undefined_);
 
-		auto entry = std::make_shared<elang::vm::variable_symbol_entry>(type_value, id_value, elang::vm::machine::compiler.info().current_context.value, attributes);
-		elang::vm::machine::compiler.info().current_context.value->add(id_value, entry);
+		elang::vm::machine::compiler.info().current_context.value->add_variable(id_value, type_value, attributes);
 	}
 
 	void operator ()(const multiple_variable_declaration &ast) const{

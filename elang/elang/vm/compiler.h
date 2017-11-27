@@ -82,8 +82,8 @@ namespace elang::vm{
 
 		struct current_context_info_type{
 			storage_symbol_entry *value;
-			storage_symbol_entry *static_search_context;
 			storage_symbol_entry *search_context;
+			std::string search_label;
 			std::size_t search_offset;
 			bool bubble_search;
 		};

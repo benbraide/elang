@@ -99,6 +99,8 @@ namespace elang::vm{
 
 		virtual id_type id() const override;
 
+		virtual size_type size() const override;
+
 		virtual type_info_ptr_type type() const override;
 
 		virtual void add_reference();

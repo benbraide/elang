@@ -141,7 +141,8 @@ struct operator_identifier_resolver{
 
 	template <typename id_type>
 	static std::string mangle(const id_type &ast){
-		auto entry = identifier_resolver()(ast);
+		storage_resolver resolver(false, search_context_);
+		auto entry = resolver(ast);
 		if (entry == nullptr)
 			throw elang::vm::compiler_error::undefined;
 
@@ -177,11 +178,11 @@ struct identifier_traverser{
 		if (entry == nullptr)//Entry not found
 			throw elang::vm::compiler_error::undefined;
 
+		if (entry->id() != elang::vm::symbol_entry_id::variable)
+			throw elang::vm::compiler_error::variable_expected;
+
 		auto this_ = ELANG_AST_COMMON_TRAVERSER_OUT;
 		auto variable_entry = reinterpret_cast<elang::vm::variable_symbol_entry *>(entry);
-
-		if (variable_entry == nullptr)
-			throw elang::vm::compiler_error::variable_expected;
 
 		this_->type = variable_entry->type();
 		if (ELANG_IS(variable_entry->attributes(), elang::vm::symbol_entry_attribute::static_const) &&
@@ -197,7 +198,10 @@ struct identifier_traverser{
 		else{//Resolve at runtime
 			this_->is_static = false;
 			this_->is_constant = this_->type->is_const();
-			this_->value = variable_operand_value_info{ variable_entry };
+			if (ELANG_IS(variable_entry->attributes(), elang::vm::symbol_entry_attribute::static_))
+				this_->value = memory_operand_value_info{ variable_entry->mangle(), variable_entry->stack_offset(), variable_entry->size() };
+			else//No label
+				this_->value = memory_operand_value_info{ "", variable_entry->stack_offset(), variable_entry->size() };
 		}
 	}
 };

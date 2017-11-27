@@ -56,6 +56,10 @@ elang::vm::symbol_entry::id_type elang::vm::variable_symbol_entry::id() const{
 	return id_type::variable;
 }
 
+elang::vm::symbol_entry::size_type elang::vm::variable_symbol_entry::size() const{
+	return type()->size();
+}
+
 elang::vm::symbol_entry::type_info_ptr_type elang::vm::variable_symbol_entry::type() const{
 	return nullptr;
 }

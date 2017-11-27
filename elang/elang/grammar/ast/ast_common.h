@@ -36,9 +36,10 @@ struct string_operand_value_info{
 	bool is_wide;
 };
 
-struct variable_operand_value_info{
-	elang::vm::variable_symbol_entry *value;
+struct memory_operand_value_info{
+	std::string label;
 	std::size_t offset;
+	std::size_t size;
 };
 
 using operand_value_type = boost::variant<
@@ -46,7 +47,7 @@ using operand_value_type = boost::variant<
 	integer_value_info,
 	long double,
 	string_operand_value_info,
-	variable_operand_value_info,
+	memory_operand_value_info,
 	elang::vm::symbol_entry *,
 	elang::vm::machine_register *,
 	instruction_operand_ptr_type
@@ -378,22 +379,22 @@ struct load_register{
 		return reg;
 	}
 
-	elang::vm::machine_register *operator ()(const variable_operand_value_info &info) const{
+	elang::vm::machine_register *operator ()(const memory_operand_value_info &info) const{
 		auto reg = get_register(elang::vm::machine_value_type_id::qword);
-		auto static_search_context = elang::vm::machine::compiler.info().current_context.static_search_context;
+		auto &search_label = elang::vm::machine::compiler.info().current_context.search_label;
 
 		instruction_operand_ptr_type base_op;
-		if (ELANG_IS(info.value->attributes(), elang::vm::symbol_entry_attribute::static_))
-			base_op = operand_creator::create(info.value->mangle());
-		else if (static_search_context != nullptr)//Offset from static start
-			base_op = operand_creator::create(static_search_context->mangle());
+		if (!info.label.empty())
+			base_op = operand_creator::create(info.label);
+		else if (!search_label.empty())//Offset from static start
+			base_op = operand_creator::create(search_label);
 		else//Local storage
 			base_op = operand_creator::create(*elang::vm::machine::cached_registers.base_pointer);
 
-		if (info.offset > 0u || info.value->stack_offset() > 0u){//Add offset
+		if (info.offset > 0u){//Add offset
 			operand_creator::memory_expr_type expr{
-				{ base_op, static_cast<__int64>(info.offset + info.value->stack_offset()) },//Expression operands
-				true																		//Perform addition
+				{ base_op, static_cast<__int64>(info.offset) },	//Expression operands
+				true											//Perform addition
 			};
 
 			instruction_creator::add_to_text_section<elang::easm::instruction::mov>(*reg, expr);
