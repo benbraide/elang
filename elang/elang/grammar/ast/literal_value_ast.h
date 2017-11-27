@@ -126,15 +126,13 @@ struct literal_value_traverser{
 		}
 
 		ELANG_AST_COMMON_TRAVERSER_OUT->value = integer_value_info{ ast.first, ELANG_AST_COMMON_TRAVERSER_OUT->type->primitive_id() };
-		ELANG_AST_COMMON_TRAVERSER_OUT->is_constant = true;
-		ELANG_AST_COMMON_TRAVERSER_OUT->is_static = true;
+		ELANG_AST_COMMON_TRAVERSER_OUT->is_static_constant = true;
 	}
 
 	void operator()(const real_literal &ast) const{
 		ELANG_AST_COMMON_TRAVERSER_OUT->type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::float_);
 		ELANG_AST_COMMON_TRAVERSER_OUT->value = ast.first;
-		ELANG_AST_COMMON_TRAVERSER_OUT->is_constant = true;
-		ELANG_AST_COMMON_TRAVERSER_OUT->is_static = true;
+		ELANG_AST_COMMON_TRAVERSER_OUT->is_static_constant = true;
 	}
 
 	void operator()(const string_literal &ast) const{
@@ -168,8 +166,7 @@ struct literal_value_traverser{
 		else//Narrow char
 			get_char<std::string>(value, is_escaped(ast.first), ELANG_AST_COMMON_TRAVERSER_OUT_DREF);
 
-		ELANG_AST_COMMON_TRAVERSER_OUT->is_constant = true;
-		ELANG_AST_COMMON_TRAVERSER_OUT->is_static = true;
+		ELANG_AST_COMMON_TRAVERSER_OUT->is_static_constant = true;
 	}
 
 	void operator()(const numeric_literal &ast) const{

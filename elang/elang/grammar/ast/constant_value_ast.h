@@ -28,8 +28,7 @@ struct constant_value_traverser{
 		}
 
 		ELANG_AST_COMMON_TRAVERSER_OUT->value = ast.value;
-		ELANG_AST_COMMON_TRAVERSER_OUT->is_constant = true;
-		ELANG_AST_COMMON_TRAVERSER_OUT->is_static = true;
+		ELANG_AST_COMMON_TRAVERSER_OUT->is_static_constant = true;
 	}
 };
 

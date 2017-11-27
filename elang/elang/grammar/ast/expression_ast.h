@@ -350,7 +350,7 @@ struct runtime_evaluator{
 		elang::vm::machine::compiler.store().put(*right_reg);//Return register
 		left.value = left_reg;//Update value
 		left.type = ((left.type->primitive_id() < right.type->primitive_id()) ? right.type : left.type);
-		left.is_constant = left.is_static = false;//Reset
+		left.is_static_constant = false;//Reset
 	}
 
 	static void numeric(elang::common::operator_id op, operand_value_info &left, operand_value_info &right, bool is_boolean){
@@ -388,7 +388,7 @@ struct runtime_evaluator{
 		elang::vm::machine::compiler.store().put(*right_reg);//Return register
 		left.value = left_reg;//Update value
 		left.type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::float_);
-		left.is_constant = left.is_static = false;//Reset
+		left.is_static_constant = false;//Reset
 	}
 
 	static void numeric_boolean(elang::common::operator_id op, operand_value_info &left, operand_value_info &right){
@@ -432,7 +432,7 @@ struct runtime_evaluator{
 		elang::vm::machine::compiler.store().put(*right_reg);//Return register
 		left.value = left_reg;//Update value
 		left.type = elang::vm::machine::compiler.find_primitive_type(elang::common::primitive_type_id::bool_);
-		left.is_constant = left.is_static = false;//Reset
+		left.is_static_constant = false;//Reset
 	}
 
 	static void pointer(elang::common::operator_id op, operand_value_info &left, operand_value_info &right, bool is_boolean){
@@ -457,7 +457,7 @@ struct runtime_evaluator{
 
 		elang::vm::machine::compiler.store().put(*right_reg);//Return register
 		left.value = left_reg;//Update value
-		left.is_constant = left.is_static = false;//Reset
+		left.is_static_constant = false;//Reset
 	}
 
 	static void pointer_boolean(elang::common::operator_id op, operand_value_info &left, operand_value_info &right){
@@ -650,7 +650,7 @@ struct expression_traverser{
 			if (!this_->type->is_numeric())
 				throw elang::vm::compiler_error::invalid_cast;
 
-			if (this_->is_constant && this_->is_static){//Static
+			if (this_->is_static_constant){//Static
 				if (type_value->is_integral()){
 					this_->value = integer_value_info{ boost::apply_visitor(get_int_value(), this_->value), type_value->primitive_id() };
 					this_->type = elang::vm::machine::compiler.find_primitive_type(type_value->primitive_id());
@@ -678,7 +678,7 @@ struct expression_traverser{
 			if (this_->type->underlying_type()->is_const() && !type_value->underlying_type()->is_const())
 				throw elang::vm::compiler_error::invalid_cast;
 
-			if (!this_->is_constant || !this_->is_static)//Runtime
+			if (!this_->is_static_constant)//Runtime
 				this_->value = load_register::load(ELANG_AST_COMMON_TRAVERSER_OUT_DREF);
 			
 			this_->type = type_value;
@@ -732,7 +732,7 @@ struct expression_traverser{
 		if (call_binary_operator(ast.first, other))
 			return;//Operator called
 
-		if (this_->is_constant && this_->is_static && other.is_constant && other.is_static){//Static evaluation
+		if (this_->is_static_constant && other.is_static_constant){//Static evaluation
 			if (this_->type->is_integral() && other.type->is_integral())
 				static_evaluator::integral(ast.first, *this_, other, is_boolean);
 			else if (this_->type->is_numeric() && other.type->is_numeric())

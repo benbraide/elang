@@ -56,8 +56,7 @@ using operand_value_type = boost::variant<
 struct operand_value_info{
 	operand_value_type value;
 	elang::vm::type_info::ptr_type type;
-	bool is_constant;
-	bool is_static;
+	bool is_static_constant;
 };
 
 struct get_int_value{

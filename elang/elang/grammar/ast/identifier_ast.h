@@ -140,7 +140,7 @@ struct operator_identifier_resolver{
 		: search_context_(search_context){}
 
 	template <typename id_type>
-	static std::string mangle(const id_type &ast){
+	std::string mangle(const id_type &ast) const{
 		storage_resolver resolver(false, search_context_);
 		auto entry = resolver(ast);
 		if (entry == nullptr)
@@ -152,11 +152,11 @@ struct operator_identifier_resolver{
 		return (elang::vm::machine::compiler.mangle(elang::vm::mangle_target::operator_) + entry->mangle());
 	}
 
-	static std::string mangle(elang::common::operator_id id){
+	std::string mangle(elang::common::operator_id id) const{
 		return (elang::vm::machine::compiler.mangle(elang::vm::mangle_target::operator_) + elang::common::utils::mangle_operator_symbol(id));
 	}
 
-	static std::string mangle(const operator_symbol &ast){
+	std::string mangle(const operator_symbol &ast) const{
 		return (elang::vm::machine::compiler.mangle(elang::vm::mangle_target::operator_) +
 			elang::common::utils::mangle_operator_symbol(ast.first, std::string(ast.second.data(), ast.second.size())));
 	}
@@ -187,7 +187,7 @@ struct identifier_traverser{
 		this_->type = variable_entry->type();
 		if (ELANG_IS(variable_entry->attributes(), elang::vm::symbol_entry_attribute::static_const) &&
 			(this_->type->is_numeric() || this_->type->is_null_pointer() || this_->type->is_pointer())){//Resolve value
-			this_->is_constant = this_->is_static = true;
+			this_->is_static_constant = true;
 			if (this_->type->is_integral() || this_->type->is_null_pointer() || this_->type->is_pointer()){
 				auto id = (this_->type->is_integral() ? elang::common::primitive_type_id::int64_ : elang::common::primitive_type_id::pointer);
 				this_->value = integer_value_info{ elang::vm::machine::compiler.get_static_const_value<__int64>(*variable_entry), id };
@@ -196,8 +196,7 @@ struct identifier_traverser{
 				this_->value = elang::vm::machine::compiler.get_static_const_value<long double>(*variable_entry);
 		}
 		else{//Resolve at runtime
-			this_->is_static = false;
-			this_->is_constant = this_->type->is_const();
+			this_->is_static_constant = false;
 			if (ELANG_IS(variable_entry->attributes(), elang::vm::symbol_entry_attribute::static_))
 				this_->value = memory_operand_value_info{ variable_entry->mangle(), variable_entry->stack_offset(), variable_entry->size() };
 			else//No label
