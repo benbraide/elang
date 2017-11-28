@@ -68,31 +68,45 @@ struct declaration_traverser{
 		std::string id_value;
 		utils::identifier_to_string(ast.id.get(), id_value);
 
-		elang::common::raii_state<bool> disable_bubble(elang::vm::machine::compiler.info().current_context.bubble_search, false);
-		if (elang::vm::machine::compiler.find(id_value) != nullptr)
+		auto old_entry = elang::vm::machine::compiler.info().current_context.value->find(id_value);
+		if (old_entry != nullptr && !old_entry->is_storage())
 			throw elang::vm::compiler_error::redefinition;
 
-		operand_value_info init_value{};
 		auto is_class = (dynamic_cast<elang::vm::class_type_symbol_entry *>(elang::vm::machine::compiler.info().current_context.value) != nullptr);
+		auto is_struct = (!is_class && dynamic_cast<elang::vm::struct_type_symbol_entry *>(elang::vm::machine::compiler.info().current_context.value) != nullptr);
 
-		if (ast.init.is_initialized()){
-			expression_traverser expr(init_value);
-			expr(ast.init);//Evaluate initialization
-			if (type_value->primitive_id() != elang::common::primitive_type_id::auto_ && !type_value->is_same_unmodified(*init_value.type));
-
-			if (ELANG_IS(type_value->attributes(), attribute_type::ref_)){
-
+		operand_value_info init_value{};
+		if (ast.init.is_initialized()){//Has initialization
+			if (!is_class && !is_struct){//Evaluate initialization
+				expression_traverser expr(init_value);
+				expr(ast.init);
 			}
-			
 		}
 		else if (type_value->primitive_id() == elang::common::primitive_type_id::auto_)//Requires initialization
 			throw elang::vm::compiler_error::initialization_required;
-		else if (!is_class && ELANG_IS_ANY(type_value->attributes(), attribute_type::const_ | attribute_type::ref_ | attribute_type::vref))
+		else if (!is_class && !is_struct && ELANG_IS_ANY(type_value->attributes(), attribute_type::const_ | attribute_type::ref_ | attribute_type::vref))
 			throw elang::vm::compiler_error::initialization_required;//Requires initialization
 		else if (ELANG_IS(attributes, elang::vm::symbol_entry_attribute::static_))//Explicit definition required
 			ELANG_SET(attributes, elang::vm::symbol_entry_attribute::undefined_);
 
-		elang::vm::machine::compiler.info().current_context.value->add_variable(id_value, type_value, attributes);
+		auto var = elang::vm::machine::compiler.info().current_context.value->add_variable(id_value, type_value, attributes);
+		if (!is_class && !is_struct){//Assign value
+			memory_operand_value_info info{
+				(ELANG_IS(attributes, elang::vm::symbol_entry_attribute::static_) ? var->mangle() : ""),
+				var->stack_offset(),
+				var->type()->size()
+			};
+
+			operand_value_info var_info{
+				info,
+				var->type(),
+				false
+			};
+
+			assignment_utils::assign(var_info, init_value, true);
+		}
+		else//Bind initialization to variable
+			var->set_initialization(ast.init);
 	}
 
 	void operator ()(const multiple_variable_declaration &ast) const{

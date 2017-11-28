@@ -30,6 +30,8 @@ namespace elang::vm{
 		bad_storage_class,
 		id_required,
 		bad_type,
+		immutable,
+		rval_assignment,
 		initialization_required,
 		no_static_const_value,
 		unreachable,

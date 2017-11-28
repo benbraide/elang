@@ -8,6 +8,7 @@
 #include "../../common/constant_value.h"
 
 #include "../../vm/machine.h"
+#include "../../vm/type_info.h"
 
 #include "asm_ast.h"
 
@@ -178,6 +179,31 @@ struct operand_creator{
 		return std::make_shared<elang::easm::instruction::memory_operand>(elang::vm::machine_value_type_id::unknown, create(info.value, info.add));
 	}
 
+	static instruction_operand_ptr_type create(const memory_operand_value_info &info, elang::vm::machine_value_type_id value_type, std::size_t offset = 0u){
+		instruction_operand_ptr_type base_op;
+		if (!info.label.empty())
+			base_op = create(info.label);
+		else//Local storage
+			base_op = create(*elang::vm::machine::cached_registers.base_pointer);
+
+		instruction_operand_ptr_type value;
+		if (info.offset > 0u || offset > 0u){//Add offset
+			memory_expr_type expr{
+				{ base_op, static_cast<__int64>(info.offset + offset) },	//Expression operands
+				true														//Perform addition
+			};
+
+			value = create(expr);
+		}
+		else//No offset
+			value = create(memory_type{ base_op });
+
+		if (value_type != elang::vm::machine_value_type_id::unknown)
+			value->apply_value_type(value_type);
+
+		return value;
+	}
+
 	static instruction_operand_ptr_type create(const std::vector<variant_type> &values, bool add = true){
 		if (values.empty())//Error
 			throw elang::vm::compiler_error::unreachable;
@@ -263,8 +289,9 @@ struct instruction_creator{
 
 	static void stack_operands(std::vector<instruction_operand_ptr_type> &list){}
 
-	static void add_to_section(elang::easm::section_id id, instruction_ptr_type value){
-		elang::vm::machine::compiler.section(id).add(value);
+	template <typename... args_types>
+	static void add_to_section(elang::easm::section_id id, args_types &&... args){
+		elang::vm::machine::compiler.section(id).add(std::forward<args_types>(args)...);
 	}
 
 	static void add_to_text_section(instruction_ptr_type value){
@@ -416,6 +443,75 @@ struct load_register{
 		auto reg = get_register(value->value_type());
 		instruction_creator::add_to_text_section<elang::easm::instruction::mov>(*reg, value);
 		return reg;
+	}
+};
+
+struct assignment_utils{
+	static void assign(operand_value_info &destination, operand_value_info &source, bool init = false){
+		if (call_binary_operator(elang::common::operator_id::assignment, destination, source, nullptr))
+			return;//Assignment operator called
+
+		if (!init && destination.type->is_const())
+			throw elang::vm::compiler_error::immutable;
+
+		if (!destination.type->is_ref())
+			throw elang::vm::compiler_error::rval_assignment;
+
+		if (destination.type->score(*source.type) == ELANG_TYPE_INFO_MIN_SCORE)//Error
+			throw elang::vm::compiler_error::invalid_operation;
+
+		auto &mem_value = boost::get<memory_operand_value_info>(destination.value);
+		if (!source.is_static_constant){//Runtime assignment
+			if (!destination.type->is_numeric() && !destination.type->is_null_pointer() && !destination.type->is_pointer() &&
+				!destination.type->is_bool() && !destination.type->is_numeric()){//Copy object
+				for (auto size = destination.type->size(), offset = static_cast<std::size_t>(0); size != 0u;){
+					if (size < 2u)
+						assign_part(mem_value, source, elang::vm::machine_value_type_id::byte, 1u, size, offset);
+					else if (size < 4u)
+						assign_part(mem_value, source, elang::vm::machine_value_type_id::word, 2u, size, offset);
+					else if (size < 8u)
+						assign_part(mem_value, source, elang::vm::machine_value_type_id::dword, 4u, size, offset);
+					else//Greater or equal than a quad-word
+						assign_part(mem_value, source, elang::vm::machine_value_type_id::qword, 8u, size, offset);
+				}
+			}
+			else{//Scalar assignment
+				auto mem_op = operand_creator::create(mem_value, destination.type->id());
+				if (destination.type->id() == source.type->id())
+					instruction_creator::add_to_text_section<elang::easm::instruction::mov>(mem_op, *load_register::load(source));
+				else//Convert
+					instruction_creator::add_to_text_section<elang::easm::instruction::extended_mov>(mem_op, *load_register::load(source));
+			}
+		}
+		else if (mem_value.label.empty()){//Assigning a static-constant value
+			auto mem_op = operand_creator::create(mem_value, destination.type->id());
+			if (destination.type->is_numeric() && !destination.type->is_integral())//Float
+				instruction_creator::add_to_text_section<elang::easm::instruction::mov>(mem_op, get_float_value()(source));
+			else//Integral compatible
+				instruction_creator::add_to_text_section<elang::easm::instruction::mov>(mem_op, get_int_value()(source));
+		}
+		else{//Create static data
+			auto section = (destination.type->is_const() ? elang::easm::section_id::rodata : elang::easm::section_id::data);
+			instruction_creator::add_to_section(section, nullptr, mem_value.label);//Add label
+		}
+	}
+
+	static void assign_part(memory_operand_value_info &destination, operand_value_info &source, elang::vm::machine_value_type_id value_type,
+		std::size_t bytes, std::size_t &size, std::size_t &offset){
+		auto left_op = operand_creator::create(destination, value_type, offset);
+		auto right_op = operand_creator::create(boost::get<memory_operand_value_info>(source.value), value_type, offset);
+		instruction_creator::add_to_text_section<elang::easm::instruction::mov>(left_op, right_op);
+
+		size -= bytes;
+		offset += bytes;
+	}
+
+	static bool call_cast_operator(const elang::vm::type_info &target, operand_value_info &info, elang::vm::machine_register **reg_out){
+		return false;
+	}
+
+	static bool call_binary_operator(elang::common::operator_id, operand_value_info &lhs, operand_value_info &rhs, elang::vm::machine_register **reg_out){
+		return false;
 	}
 };
 
